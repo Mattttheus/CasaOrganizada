@@ -1,0 +1,31 @@
+
+:root {
+    --navy:#172033; --blue:#2563eb; --green:#16a34a; --red:#dc2626;
+    --orange:#d97706; --bg:#f5f7fb; --border:#e5e7eb; --muted:#64748b;
+}
+body{background:var(--bg);color:#172033;font-family:Inter,system-ui,sans-serif}
+.navbar{background:var(--navy)}
+.page{max-width:1550px;margin:auto;padding:24px}
+.cardx{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 18px rgba(15,23,42,.05);overflow:hidden}
+.headerx{padding:16px 20px;border-bottom:1px solid var(--border)}
+.bodyx{padding:20px}
+.metric{padding:18px;min-height:125px}
+.metric-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+.metric-value{font-size:1.45rem;font-weight:800;margin-top:7px}
+.iconx{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.soft-blue{background:#eff6ff;color:#2563eb}.soft-green{background:#f0fdf4;color:#16a34a}
+.soft-red{background:#fef2f2;color:#dc2626}.soft-orange{background:#fff7ed;color:#d97706}
+.chart{position:relative;height:290px}
+.chart-small{position:relative;height:250px}
+.table th{font-size:.7rem;text-transform:uppercase;color:#64748b;background:#f8fafc;white-space:nowrap}
+.table td{vertical-align:middle}
+.badge-soft{border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:600}
+.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.calendar-weekday{text-align:center;color:#64748b;font-size:.65rem;font-weight:700;text-transform:uppercase;padding:4px}
+.calendar-day{min-height:34px;border:1px solid transparent;border-radius:8px;background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;cursor:pointer;position:relative}
+.calendar-day:hover{background:#eff6ff;color:#2563eb}
+.calendar-day.today{border-color:#93c5fd}
+.calendar-day.selected{background:#2563eb;color:#fff}
+.calendar-day.has-note:after{content:"";position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%;background:#d97706}
+.calendar-day.selected.has-note:after{background:#fff}
+@media(max-width:767px){.page{padding:16px}.chart{height:250px}}

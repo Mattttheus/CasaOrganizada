@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../config/seguranca.php';
+exigirLogin();
+
 /**
  * CasaOrganizada — Gestão de Despesas
  */
@@ -168,6 +171,9 @@ $catData   = json_encode(array_values($despesasCategorias), $jsonFlags);
                 <a class="nav-link text-white-50" href="index.php?route=dashboard">Dashboard</a>
                 <a class="nav-link text-white-50" href="index.php?route=receitas">Receitas</a>
                 <a class="nav-link active fw-semibold text-white" href="index.php?route=despesas">Despesas</a>
+                <a class="nav-link text-white-50" href="index.php?route=cartoes">Cartões</a>
+                <a class="nav-link text-white-50" href="index.php?route=parcelamentos">Parcelamentos</a>
+                <a class="nav-link text-white-50" href="index.php?route=membros">Família</a>
             </div>
         </div>
     </nav>
@@ -195,6 +201,7 @@ $catData   = json_encode(array_values($despesasCategorias), $jsonFlags);
                     <div class="bodyx">
                         <form method="post" action="index.php?route=despesas_store" enctype="multipart/form-data"
                             class="row g-3">
+                            <?= csrfCampo() ?>
                             <div class="col-md-6">
                                 <label class="form-label">Descrição</label>
                                 <input type="text" name="descricao" class="form-control"
@@ -343,6 +350,7 @@ $catData   = json_encode(array_values($despesasCategorias), $jsonFlags);
                             <td class="text-center">
                                 <form method="post" action="index.php?route=excluir_despesa"
                                     onsubmit="return confirm('Tem certeza que deseja excluir esta despesa?')">
+                                    <?= csrfCampo() ?>
                                     <input type="hidden" name="id" value="<?= $d['id'] ?>">
                                     <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
                                         <i class="fa-solid fa-trash-can"></i>

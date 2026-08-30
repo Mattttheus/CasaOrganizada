@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../config/seguranca.php';
+exigirLogin();
+
 /**
  * CasaOrganizada — Gestão de Receitas
  */
@@ -183,6 +186,9 @@ $totalReceitas     = $totalReceitas ?? 0.0;
                 <a class="nav-link text-white-50" href="index.php?route=dashboard">Dashboard</a>
                 <a class="nav-link active fw-semibold text-white" href="index.php?route=receitas">Receitas</a>
                 <a class="nav-link text-white-50" href="index.php?route=despesas">Despesas</a>
+                <a class="nav-link text-white-50" href="index.php?route=cartoes">Cartões</a>
+                <a class="nav-link text-white-50" href="index.php?route=parcelamentos">Parcelamentos</a>
+                <a class="nav-link text-white-50" href="index.php?route=membros">Família</a>
             </div>
         </div>
     </nav>
@@ -209,6 +215,7 @@ $totalReceitas     = $totalReceitas ?? 0.0;
                     </div>
                     <div class="bodyx">
                         <form method="post" action="index.php?route=receitas_store" enctype="multipart/form-data">
+                            <?= csrfCampo() ?>
                             <div class="mb-3">
                                 <label class="form-label">Descrição</label>
                                 <input type="text" name="descricao" class="form-control"
@@ -315,6 +322,7 @@ $totalReceitas     = $totalReceitas ?? 0.0;
                                     <td class="text-center">
                                         <form method="post" action="index.php?route=receitas_delete"
                                             onsubmit="return confirm('Tem certeza que deseja excluir esta receita?')">
+                                            <?= csrfCampo() ?>
                                             <input type="hidden" name="id" value="<?= $r['id'] ?>">
                                             <button type="submit"
                                                 class="btn btn-sm btn-outline-danger border-0 rounded-circle">

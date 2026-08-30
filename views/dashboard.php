@@ -7,9 +7,11 @@
  * ============================================================
  */
 
-// Inicia sessão caso ainda não esteja iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+require_once __DIR__ . '/../config/seguranca.php';
+
+// Inicia sessão segura caso ainda não esteja iniciada (acesso direto ao arquivo)
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    iniciarSessaoSegura();
 }
 
 /**
@@ -111,8 +113,6 @@ if (!isset($despesasCategorias) || !is_array($despesasCategorias)) {
 if (!isset($receitasCategorias) || !is_array($receitasCategorias)) {
     $receitasCategorias = [];
 }
-
-?>
 
 /**
 * ============================================================
@@ -1826,6 +1826,8 @@ array_unique($agendaDates)
 
                         <form method="post" action="index.php?route=salvar_anotacao">
 
+
+                            <?= csrfCampo() ?>
 
                             <input type="hidden" name="data_agendamento" id="noteDate" value="<?= date('Y-m-d') ?>">
 

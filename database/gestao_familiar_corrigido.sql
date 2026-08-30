@@ -6,11 +6,32 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
+    celular VARCHAR(20) NULL,
     senha VARCHAR(255) NOT NULL,
     role ENUM('admin','usuario') DEFAULT 'usuario',
     ativo TINYINT(1) DEFAULT 1,
+    tentativas_login INT NOT NULL DEFAULT 0,
+    bloqueado_ate DATETIME NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- Usuário padrão: e-mail admin@casaorganizada.com / senha admin123 (altere após o primeiro acesso).
+INSERT INTO usuarios (nome, email, senha, role, ativo)
+SELECT 'Administrador', 'admin@casaorganizada.com',
+       '$2y$10$TuPZmBiHeCdQa3Mvj0K7buMECyL91m1FTDeZyU2JUIjH7uV3AuJVK',
+       'admin', 1
+WHERE NOT EXISTS (
+    SELECT 1 FROM usuarios WHERE email = 'admin@casaorganizada.com'
+);
+
+-- Usuário: Matheus / e-mail matheusviniciuscaieiras@gmail.com / senha Matheus@2026 (altere após o primeiro acesso).
+INSERT INTO usuarios (nome, email, celular, senha, role, ativo)
+SELECT 'Matheus', 'matheusviniciuscaieiras@gmail.com', '11942726317',
+       '$2y$10$.Bt1YzAUAIpi87XlNhH0puZGAib256pZFNGP0fxRzFz2VE2CK/eB.',
+       'usuario', 1
+WHERE NOT EXISTS (
+    SELECT 1 FROM usuarios WHERE email = 'matheusviniciuscaieiras@gmail.com'
+);
 
 CREATE TABLE IF NOT EXISTS membros_familia (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -2,16 +2,14 @@
 declare(strict_types=1);
 
 /**
- * Conexão PDO única do CasaOrganizada.
- *
- * Em produção, prefira configurar estes valores como variáveis de ambiente
- * do hosting (quando suportado). Caso contrário, edite os valores padrão
- * abaixo diretamente neste arquivo no servidor (ele NÃO é versionado no git).
+ * MODELO de conexão — copie este arquivo para "conexao.php" no servidor
+ * de produção (o conexao.php real não é versionado no git) e preencha
+ * com os dados do banco fornecidos pelo hosting (WapServerOnline, etc.).
  */
 const DB_HOST = '127.0.0.1';
-const DB_NAME = 'gestao_familiar';
-const DB_USER = 'root';
-const DB_PASS = '4605';
+const DB_NAME = 'nome_do_banco';
+const DB_USER = 'usuario_do_banco';
+const DB_PASS = 'senha_do_banco';
 
 function dbConfig(string $chave, string $padrao): string
 {

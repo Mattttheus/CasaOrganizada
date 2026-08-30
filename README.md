@@ -53,3 +53,49 @@ Se o projeto ainda mostrar números zerados, o problema deixa de ser o gráfico 
 - usuário do MySQL sem permissão.
 
 O arquivo `config/conexao.php` centraliza essa conexão.
+
+## Publicando no WapServerOnline (ou outro hosting via FTP)
+
+1. **Requisito mínimo**: PHP 8.0+ com extensões `pdo_mysql` e `mbstring` habilitadas.
+   Se o painel do hosting não mostrar a versão, crie um arquivo temporário
+   `phpinfo.php` na raiz com `<?php phpinfo();`, acesse-o pelo navegador para
+   conferir a versão e **apague-o em seguida** (nunca deixe phpinfo() público).
+2. Crie o banco de dados e o usuário MySQL pelo painel/phpMyAdmin do hosting,
+   depois importe `database/gestao_familiar_corrigido.sql`.
+3. Envie todo o conteúdo do projeto por FTP para a pasta pública do domínio
+   (`public_html`, `www` ou equivalente). O `.htaccess` já bloqueia o acesso
+   direto às pastas `config/`, `app/`, `database/` e `views/`.
+4. `config/conexao.php` **não é enviado pelo git** (está no `.gitignore`).
+   Copie `config/conexao.example.php` para `config/conexao.php` diretamente
+   no servidor (via FTP ou gerenciador de arquivos) e preencha `DB_HOST`,
+   `DB_NAME`, `DB_USER` e `DB_PASS` com os dados fornecidos pelo hosting.
+5. Troque a senha do usuário `admin@casaorganizada.com` (padrão `admin123`)
+   assim que conseguir logar — é uma senha de exemplo usada apenas em
+   desenvolvimento.
+6. Confirme que o site responde em HTTPS; a sessão só marca o cookie como
+   seguro quando a requisição chega via HTTPS (`config/seguranca.php`).
+7. Erros do PHP não aparecem mais na tela em produção (ver topo de
+   `index.php`); consulte o log de erros do hosting caso algo falhe.
+
+## Protegendo o acesso ao banco de dados
+
+1. **Nunca use o usuário `root`** em produção. No painel do hosting, crie um
+   usuário de banco dedicado só para esta aplicação, com privilégios apenas
+   sobre o banco `gestao_familiar` (SELECT, INSERT, UPDATE, DELETE, CREATE,
+   ALTER) — evite `GRANT ALL` global.
+2. Use uma senha forte e aleatória (bem diferente da senha `4605` usada em
+   desenvolvimento local), por exemplo:
+   `b1452c9addfb1f08e28072f2` (gerada agora só como exemplo — gere a sua e
+   guarde em um cofre de senhas, não em chat ou anotações).
+3. A maioria dos hostings compartilhados já restringe o MySQL a conexões
+   `localhost` (o próprio servidor). Confirme essa opção no painel e **não
+   habilite "acesso remoto ao banco"** a menos que seja estritamente
+   necessário; se precisar, restrinja por IP.
+4. Mantenha `config/conexao.php` fora do git (já está no `.gitignore`) e
+   com permissão de leitura restrita no servidor (via FTP, ajuste a
+   permissão do arquivo para `640` ou o mais restritivo que o hosting
+   permitir).
+5. Ative backups automáticos do banco pelo painel do hosting (ou exporte
+   periodicamente pelo phpMyAdmin) antes de qualquer alteração maior.
+6. Troque as senhas padrão de `admin@casaorganizada.com` e
+   `matheusviniciuscaieiras@gmail.com` assim que o primeiro login funcionar.

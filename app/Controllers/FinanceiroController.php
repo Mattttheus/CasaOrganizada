@@ -12,7 +12,7 @@ final class FinanceiroController
         $this->pdo = db();
     }
 
-    private function redirect(string $route = 'dashboard'): never
+    private function redirect(string $route = 'dashboard'): void
     {
         header('Location: index.php?route=' . urlencode($route));
         exit;
@@ -52,7 +52,7 @@ final class FinanceiroController
         $value = (string)$value;
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            throw new InvalidArgumentException('Data inválida.');
+            throw new InvalidArgumentException('Data invÃ¡lida.');
         }
 
         return $value;
@@ -62,7 +62,7 @@ final class FinanceiroController
     {
         $id = (int)$value;
         if ($id <= 0) {
-            throw new InvalidArgumentException('Registro inválido.');
+            throw new InvalidArgumentException('Registro invÃ¡lido.');
         }
         return $id;
     }
@@ -75,7 +75,7 @@ final class FinanceiroController
         $inicio = sprintf('%04d-%02d-01', $year, $month);
         $fim = date('Y-m-t', strtotime($inicio));
 
-        // Receitas: membro é opcional.
+        // Receitas: membro Ã© opcional.
         $stmt = $this->pdo->prepare("
             SELECT
                 r.id,
@@ -87,7 +87,7 @@ final class FinanceiroController
                 r.categoria_id,
                 COALESCE(c.nome, 'Outros') AS categoria,
                 r.membro_id,
-                COALESCE(m.nome, 'Não informado') AS membro_nome
+                COALESCE(m.nome, 'NÃ£o informado') AS membro_nome
             FROM receitas r
             LEFT JOIN categorias c ON c.id = r.categoria_id
             LEFT JOIN membros_familia m ON m.id = r.membro_id
@@ -97,8 +97,8 @@ final class FinanceiroController
         $stmt->execute(['inicio' => $inicio, 'fim' => $fim]);
         $receitas = $stmt->fetchAll();
 
-        // Despesas: membro e cartão são opcionais.
-        // valor_real é exposto também como valor_realizado para a View.
+        // Despesas: membro e cartÃ£o sÃ£o opcionais.
+        // valor_real Ã© exposto tambÃ©m como valor_realizado para a View.
         $stmt = $this->pdo->prepare("
             SELECT
                 d.id,
@@ -106,7 +106,7 @@ final class FinanceiroController
                 COALESCE(c.nome, 'Outros') AS categoria,
                 d.categoria_id,
                 d.membro_id,
-                COALESCE(m.nome, 'Não informado') AS membro_nome,
+                COALESCE(m.nome, 'NÃ£o informado') AS membro_nome,
                 d.cartao_id,
                 ca.nome AS cartao_nome,
                 d.tipo,
@@ -178,8 +178,8 @@ final class FinanceiroController
         $coletivas = 0.0;
         foreach ($despesas as $d) {
             $valor = (float)$d['valor_real'];
-            // O esquema original não possui tipo_grupo em despesas.
-            // Sem coluna específica, o painel considera todas como coletivas.
+            // O esquema original nÃ£o possui tipo_grupo em despesas.
+            // Sem coluna especÃ­fica, o painel considera todas como coletivas.
             $coletivas += $valor;
         }
 
@@ -204,7 +204,159 @@ final class FinanceiroController
         );
     }
 
-    public function storeReceita(): never
+    public function dataCartoes(): array
+    {
+        $cartoes = $this->pdo->query("
+            SELECT ca.*, m.nome AS membro_nome,
+                   COALESCE(SUM(d.valor_real), 0) AS total_gasto
+            FROM cartoes ca
+            LEFT JOIN membros_familia m ON m.id = ca.membro_id
+            LEFT JOIN despesas d ON d.cartao_id = ca.id
+            GROUP BY ca.id
+            ORDER BY ca.nome
+        ")->fetchAll();
+
+        $membros = $this->pdo
+            ->query("SELECT id, nome FROM membros_familia WHERE ativo=1 ORDER BY nome")
+            ->fetchAll();
+
+        return compact('cartoes', 'membros');
+    }
+
+    public function storeCartao(): void
+    {
+        $nome = trim((string)$this->post('nome', ''));
+        $banco = trim((string)$this->post('banco', ''));
+        $limite = $this->moneyToFloat($this->post('limite_total'));
+        $diaFechamento = $this->nullableInt($this->post('dia_fechamento'));
+        $diaVencimento = $this->nullableInt($this->post('dia_vencimento'));
+        $membroId = $this->nullableInt($this->post('membro_id'));
+
+        if ($nome === '') {
+            throw new InvalidArgumentException('Informe o nome do cartÃ£o.');
+        }
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO cartoes (nome, banco, limite_total, dia_fechamento, dia_vencimento, membro_id)
+            VALUES (:nome, :banco, :limite, :fechamento, :vencimento, :membro_id)
+        ");
+        $stmt->execute([
+            'nome' => $nome,
+            'banco' => $banco ?: null,
+            'limite' => $limite,
+            'fechamento' => $diaFechamento,
+            'vencimento' => $diaVencimento,
+            'membro_id' => $membroId,
+        ]);
+
+        $this->redirect('cartoes');
+    }
+
+    public function updateCartao(): void
+    {
+        $id = $this->validId($this->post('id'));
+        $nome = trim((string)$this->post('nome', ''));
+        $banco = trim((string)$this->post('banco', ''));
+        $limite = $this->moneyToFloat($this->post('limite_total'));
+        $diaFechamento = $this->nullableInt($this->post('dia_fechamento'));
+        $diaVencimento = $this->nullableInt($this->post('dia_vencimento'));
+        $membroId = $this->nullableInt($this->post('membro_id'));
+
+        if ($nome === '') {
+            throw new InvalidArgumentException('Informe o nome do cartÃ£o.');
+        }
+
+        $stmt = $this->pdo->prepare("
+            UPDATE cartoes
+            SET nome=:nome, banco=:banco, limite_total=:limite, dia_fechamento=:fechamento,
+                dia_vencimento=:vencimento, membro_id=:membro_id
+            WHERE id=:id
+        ");
+        $stmt->execute([
+            'id' => $id,
+            'nome' => $nome,
+            'banco' => $banco ?: null,
+            'limite' => $limite,
+            'fechamento' => $diaFechamento,
+            'vencimento' => $diaVencimento,
+            'membro_id' => $membroId,
+        ]);
+
+        $this->redirect('cartoes');
+    }
+
+    public function deleteCartao(): void
+    {
+        $id = $this->validId($this->post('id'));
+
+        $stmt = $this->pdo->prepare("DELETE FROM cartoes WHERE id=:id");
+        $stmt->execute(['id' => $id]);
+
+        $this->redirect('cartoes');
+    }
+
+    public function dataParcelamentos(): array
+    {
+        $parcelamentos = $this->pdo->query("
+            SELECT d.id AS despesa_id, d.descricao, d.valor_previsto, d.data_prevista,
+                   ca.nome AS cartao_nome, c.nome AS categoria_nome,
+                   COUNT(p.id) AS total_parcelas,
+                   SUM(CASE WHEN p.status='Pago' THEN 1 ELSE 0 END) AS parcelas_pagas
+            FROM despesas d
+            INNER JOIN parcelas p ON p.despesa_id = d.id
+            LEFT JOIN cartoes ca ON ca.id = d.cartao_id
+            LEFT JOIN categorias c ON c.id = d.categoria_id
+            GROUP BY d.id
+            ORDER BY d.data_prevista DESC
+        ")->fetchAll();
+
+        $parcelasPorDespesa = [];
+
+        if ($parcelamentos !== []) {
+            $ids = array_column($parcelamentos, 'despesa_id');
+            $marcadores = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $this->pdo->prepare(
+                "SELECT * FROM parcelas WHERE despesa_id IN ($marcadores) ORDER BY numero_parcela"
+            );
+            $stmt->execute($ids);
+
+            foreach ($stmt->fetchAll() as $parcela) {
+                $parcelasPorDespesa[$parcela['despesa_id']][] = $parcela;
+            }
+        }
+
+        $cartoes = $this->pdo
+            ->query("SELECT id, nome, limite_total FROM cartoes WHERE ativo=1 ORDER BY nome")
+            ->fetchAll();
+
+        $categoriasDespesa = $this->pdo
+            ->query("SELECT id, nome FROM categorias WHERE tipo='despesa' AND ativo=1 ORDER BY nome")
+            ->fetchAll();
+
+        return compact('parcelamentos', 'parcelasPorDespesa', 'cartoes', 'categoriasDespesa');
+    }
+
+    public function pagarParcela(): void
+    {
+        $id = $this->validId($this->post('id'));
+
+        $stmt = $this->pdo->prepare("UPDATE parcelas SET status='Pago' WHERE id=:id");
+        $stmt->execute(['id' => $id]);
+
+        $this->redirect('parcelamentos');
+    }
+
+    public function deleteParcelamento(): void
+    {
+        $id = $this->validId($this->post('id'));
+
+        $stmt = $this->pdo->prepare("DELETE FROM despesas WHERE id=:id");
+        $stmt->execute(['id' => $id]);
+
+        $this->redirect('parcelamentos');
+    }
+
+    public function storeReceita(): void
     {
         $descricao = trim((string)$this->post('descricao', ''));
         $valor = $this->moneyToFloat($this->post('valor'));
@@ -214,7 +366,7 @@ final class FinanceiroController
         $observacao = trim((string)$this->post('observacao', ''));
 
         if ($descricao === '' || $valor <= 0) {
-            throw new InvalidArgumentException('Descrição e valor da receita são obrigatórios.');
+            throw new InvalidArgumentException('DescriÃ§Ã£o e valor da receita sÃ£o obrigatÃ³rios.');
         }
 
         $stmt = $this->pdo->prepare("
@@ -236,7 +388,7 @@ final class FinanceiroController
         $this->redirect('receitas');
     }
 
-    public function updateReceita(): never
+    public function updateReceita(): void
     {
         $id = $this->validId($this->post('id'));
         $descricao = trim((string)$this->post('descricao', ''));
@@ -247,7 +399,7 @@ final class FinanceiroController
         $observacao = trim((string)$this->post('observacao', ''));
 
         if ($descricao === '' || $valor <= 0) {
-            throw new InvalidArgumentException('Descrição e valor são obrigatórios.');
+            throw new InvalidArgumentException('DescriÃ§Ã£o e valor sÃ£o obrigatÃ³rios.');
         }
 
         $stmt = $this->pdo->prepare("
@@ -275,7 +427,7 @@ final class FinanceiroController
         $this->redirect('receitas');
     }
 
-    public function deleteReceita(): never
+    public function deleteReceita(): void
     {
         $id = $this->validId($this->post('id'));
 
@@ -285,7 +437,7 @@ final class FinanceiroController
         $this->redirect('receitas');
     }
 
-    public function storeDespesa(): never
+    public function storeDespesa(): void
     {
         $descricao = trim((string)$this->post('descricao', ''));
         $valor = $this->moneyToFloat($this->post('valor'));
@@ -297,12 +449,12 @@ final class FinanceiroController
         $observacao = trim((string)$this->post('observacao', ''));
 
         if ($descricao === '' || $valor <= 0) {
-            throw new InvalidArgumentException('Descrição e valor da despesa são obrigatórios.');
+            throw new InvalidArgumentException('DescriÃ§Ã£o e valor da despesa sÃ£o obrigatÃ³rios.');
         }
 
         $formas = ['PIX', 'Dinheiro', 'Cartao de Credito', 'Cartao de Debito', 'Boleto'];
         if (!in_array($formaPagamento, $formas, true)) {
-            throw new InvalidArgumentException('Forma de pagamento inválida.');
+            throw new InvalidArgumentException('Forma de pagamento invÃ¡lida.');
         }
 
         if ($formaPagamento !== 'Cartao de Credito') {
@@ -334,7 +486,7 @@ final class FinanceiroController
         $this->redirect('despesas');
     }
 
-    public function storeParcelamento(): never
+    public function storeParcelamento(): void
     {
         $descricao = trim((string)$this->post('descricao', ''));
         $valorTotal = $this->moneyToFloat($this->post('valor_total'));
@@ -344,7 +496,7 @@ final class FinanceiroController
         $cartaoId = $this->nullableInt($this->post('cartao_id'));
 
         if ($descricao === '' || $valorTotal <= 0 || !$cartaoId) {
-            throw new InvalidArgumentException('Descrição, valor e cartão são obrigatórios para parcelamento.');
+            throw new InvalidArgumentException('DescriÃ§Ã£o, valor e cartÃ£o sÃ£o obrigatÃ³rios para parcelamento.');
         }
 
         $valorParcela = round($valorTotal / $parcelas, 2);
@@ -382,7 +534,7 @@ final class FinanceiroController
             for ($i = 1; $i <= $parcelas; $i++) {
                 $vencimento = date('Y-m-d', strtotime("+".($i - 1)." month", strtotime($data)));
 
-                // Ajusta centavos na última parcela para fechar exatamente o total.
+                // Ajusta centavos na Ãºltima parcela para fechar exatamente o total.
                 $valorAtual = ($i === $parcelas)
                     ? round($valorTotal - ($valorParcela * ($parcelas - 1)), 2)
                     : $valorParcela;
@@ -402,10 +554,10 @@ final class FinanceiroController
             throw $e;
         }
 
-        $this->redirect('despesas');
+        $this->redirect('parcelamentos');
     }
 
-    public function updateDespesa(): never
+    public function updateDespesa(): void
     {
         $id = $this->validId($this->post('id'));
         $descricao = trim((string)$this->post('descricao', ''));
@@ -415,7 +567,7 @@ final class FinanceiroController
         $data = $this->validDate($this->post('data', date('Y-m-d')));
 
         if ($descricao === '' || $valor <= 0) {
-            throw new InvalidArgumentException('Descrição e valor são obrigatórios.');
+            throw new InvalidArgumentException('DescriÃ§Ã£o e valor sÃ£o obrigatÃ³rios.');
         }
 
         $stmt = $this->pdo->prepare("
@@ -446,7 +598,7 @@ final class FinanceiroController
         $this->redirect('despesas');
     }
 
-    public function deleteDespesa(): never
+    public function deleteDespesa(): void
     {
         $id = $this->validId($this->post('id'));
 
@@ -456,7 +608,7 @@ final class FinanceiroController
         $this->redirect('despesas');
     }
 
-    public function storeLancamento(): never
+    public function storeLancamento(): void
     {
         $tipo = $this->post('tipo_transacao', 'despesa');
 
@@ -468,13 +620,13 @@ final class FinanceiroController
         $this->storeDespesa();
     }
 
-    public function storeAnotacao(): never
+    public function storeAnotacao(): void
     {
         $texto = trim((string)$this->post('texto', ''));
         $data = $this->validDate($this->post('data_agendamento', date('Y-m-d')));
 
         if ($texto === '') {
-            throw new InvalidArgumentException('Digite uma anotação.');
+            throw new InvalidArgumentException('Digite uma anotaÃ§Ã£o.');
         }
 
         $stmt = $this->pdo->prepare("

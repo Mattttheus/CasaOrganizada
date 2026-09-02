@@ -212,7 +212,7 @@ final class FinanceiroController
             FROM cartoes ca
             LEFT JOIN membros_familia m ON m.id = ca.membro_id
             LEFT JOIN despesas d ON d.cartao_id = ca.id
-            GROUP BY ca.id
+            GROUP BY ca.id, m.nome
             ORDER BY ca.nome
         ")->fetchAll();
 
@@ -306,7 +306,7 @@ final class FinanceiroController
             INNER JOIN parcelas p ON p.despesa_id = d.id
             LEFT JOIN cartoes ca ON ca.id = d.cartao_id
             LEFT JOIN categorias c ON c.id = d.categoria_id
-            GROUP BY d.id
+            GROUP BY d.id, ca.nome, c.nome
             ORDER BY d.data_prevista DESC
         ")->fetchAll();
 
@@ -504,14 +504,20 @@ final class FinanceiroController
         $this->pdo->beginTransaction();
 
         try {
-            $stmt = $this->pdo->prepare("
+            $sql = "
                 INSERT INTO despesas
                     (descricao, categoria_id, membro_id, cartao_id, tipo, forma_pagamento,
                      valor_previsto, valor_real, data_prevista, data_pagamento, status, observacao)
                 VALUES
                     (:descricao, :categoria_id, NULL, :cartao_id, 'Variavel', 'Cartao de Credito',
                      :valor_previsto, 0, :data_prevista, NULL, 'Previsto', :observacao)
-            ");
+            ";
+
+            if (dbDriver() === 'pgsql') {
+                $sql .= ' RETURNING id';
+            }
+
+            $stmt = $this->pdo->prepare($sql);
 
             $stmt->execute([
                 'descricao' => $descricao,
@@ -522,7 +528,9 @@ final class FinanceiroController
                 'observacao' => 'Compra parcelada',
             ]);
 
-            $despesaId = (int)$this->pdo->lastInsertId();
+            $despesaId = dbDriver() === 'pgsql'
+                ? (int)$stmt->fetchColumn()
+                : (int)$this->pdo->lastInsertId();
 
             $stmtParcela = $this->pdo->prepare("
                 INSERT INTO parcelas

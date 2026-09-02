@@ -54,6 +54,28 @@ Se o projeto ainda mostrar números zerados, o problema deixa de ser o gráfico 
 
 O arquivo `config/conexao.php` centraliza essa conexão.
 
+## Migração para Supabase
+
+1. No painel do Supabase, abra o **SQL Editor** e execute
+   `database/supabase_schema.sql`.
+2. Em `/home/runner/work/CasaOrganizada/CasaOrganizada/config/conexao.php`
+   ou nas variáveis de ambiente do servidor, configure:
+   - `CASAORGANIZADA_DB_DRIVER=pgsql`
+   - `CASAORGANIZADA_DB_HOST`
+   - `CASAORGANIZADA_DB_PORT`
+   - `CASAORGANIZADA_DB_NAME`
+   - `CASAORGANIZADA_DB_USER`
+   - `CASAORGANIZADA_DB_PASS`
+   - `CASAORGANIZADA_DB_SSL_MODE=require`
+3. Para conexão direta do Supabase, normalmente o banco é `postgres` e a porta
+   é `5432`; no pooler, a porta costuma ser `6543`. Use exatamente os valores
+   exibidos em **Connect** no painel do projeto.
+4. A aplicação continua sendo um projeto PHP tradicional: o Supabase entra
+   aqui como banco PostgreSQL hospedado. Você ainda precisa publicar o PHP em
+   um servidor compatível com PHP 8.0+.
+5. Depois de apontar para o Supabase, faça login e troque as senhas padrão dos
+   usuários seedados.
+
 ## Publicando no WapServerOnline (ou outro hosting via FTP)
 
 1. **Requisito mínimo**: PHP 8.0+ com extensões `pdo_mysql` e `mbstring` habilitadas.

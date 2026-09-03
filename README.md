@@ -76,6 +76,36 @@ O arquivo `config/conexao.php` centraliza essa conexão.
 5. Depois de apontar para o Supabase, faça login e troque as senhas padrão dos
    usuários seedados.
 
+## Publicando no Vercel com Supabase (PostgreSQL)
+
+1. O projeto é PHP tradicional e pode rodar no Vercel com a configuração de
+   `/home/runner/work/CasaOrganizada/CasaOrganizada/vercel.json`.
+2. No Vercel, em **Project Settings > Environment Variables**, configure:
+   - `CASAORGANIZADA_DB_DRIVER=pgsql`
+   - `CASAORGANIZADA_DB_HOST`
+   - `CASAORGANIZADA_DB_PORT` (`5432` direto ou `6543` no pooler)
+   - `CASAORGANIZADA_DB_NAME` (normalmente `postgres`)
+   - `CASAORGANIZADA_DB_USER`
+   - `CASAORGANIZADA_DB_PASS`
+   - `CASAORGANIZADA_DB_SSL_MODE=require`
+3. No Supabase SQL Editor, execute
+   `/home/runner/work/CasaOrganizada/CasaOrganizada/database/supabase_schema.sql`
+   antes do primeiro acesso em produção.
+4. Faça deploy e valide:
+   - login/logout;
+   - dashboard com valores;
+   - cadastro de receitas e despesas;
+   - atualização dos gráficos;
+   - manutenção da sessão entre requisições.
+5. Se o ambiente serverless do Vercel limitar sua sessão/autenticação, publique
+   o PHP em Render, Railway ou hosting compartilhado e mantenha o Supabase como
+   banco PostgreSQL.
+6. Se aparecer "Erro do servidor" no Vercel:
+   - abra **Vercel > Project > Deployments > Functions Logs**;
+   - confirme que `CASAORGANIZADA_DB_*` está preenchido para Production;
+   - verifique se a porta/host do Supabase está correta (5432 direto ou 6543 pooler);
+   - valide se o `CASAORGANIZADA_DB_SSL_MODE` está como `require`.
+
 ## Publicando no WapServerOnline (ou outro hosting via FTP)
 
 1. **Requisito mínimo**: PHP 8.0+ com extensões `pdo_mysql` e `mbstring` habilitadas.

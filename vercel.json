@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.php",
+      "use": "@vercel/php"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(config|database|app|views)(?:/.*)?",
+      "status": 404
+    },
+    {
+      "src": "/.*\\.(sql|md|log|env|gitignore)$",
+      "status": 404
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/.*",
+      "dest": "/index.php"
+    }
+  ]
+}

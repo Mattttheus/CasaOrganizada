@@ -1,14 +1,15 @@
-# CasaOrganizada — correção de integração com MySQL
+# Casa Organizada
 
-## Versão para GitHub Pages
+Aplicativo estático (HTML + CSS + JavaScript) para organizar as finanças da família, pronto para publicar no **GitHub Pages** — sem PHP, Apache ou banco de dados.
 
-O arquivo `index.html` é a entrada da versão estática do projeto. Ele usa
-`assets/js/app.js` e `assets/css/static.css`, sem PHP, Apache ou banco local.
-Essa versão funciona no GitHub Pages com login demonstrativo e salva os dados
-no `localStorage` do navegador usado. Portanto, cada navegador terá seus
-próprios dados.
+## Como funciona
 
-Para publicar:
+- `index.html` é a única página de entrada.
+- `assets/css/static.css` cuida de todo o visual.
+- `assets/js/app.js` implementa a navegação (login, dashboard, receitas, despesas, cartões, parcelamentos e membros) e guarda os dados no `localStorage` do navegador.
+- Cada navegador/dispositivo mantém seus próprios dados — não há servidor nem sincronização entre usuários.
+
+## Publicar no GitHub Pages
 
 1. Faça commit e push dos arquivos para o GitHub.
 2. No repositório, abra **Settings > Pages**.
@@ -17,136 +18,25 @@ Para publicar:
 5. Acesse a URL exibida pelo GitHub, normalmente
    `https://mattttheus.github.io/CasaOrganizada/`.
 
-O `index.php` e as pastas PHP originais continuam no repositório para a
-versão com servidor. O GitHub Pages usará automaticamente `index.html`.
+## Rodar localmente
+
+Basta abrir `index.html` em um navegador, ou servir a pasta com qualquer servidor estático, por exemplo:
+
+```bash
+npx serve .
+```
+
+## Estrutura do projeto
+
+```
+index.html            # ponto de entrada
+assets/css/static.css # estilos
+assets/js/app.js      # lógica da aplicação (SPA com localStorage)
+database/             # esquemas SQL de referência (não usados pela versão estática)
+```
+
+## Evoluindo para múltiplos usuários
+
 Para compartilhar dados entre usuários, a camada `localStorage` deverá ser
 substituída por uma API pública, como Supabase Auth + RLS; chaves secretas do
-Supabase nunca devem ser colocadas no JavaScript publicado.
-
-## Problemas corrigidos
-
-1. Dashboard passa a buscar receitas e despesas diretamente do MySQL.
-2. Cards não usam valores fictícios.
-3. Gráficos recebem JSON calculado no servidor.
-4. Cadastro de despesa envia `forma_pagamento`, que era obrigatório no banco.
-5. Cadastro usa `categoria_id`, compatível com a estrutura relacional.
-6. `membro_id` fica `NULL`: não existe mais "Membro Responsável" no formulário.
-7. Cartão é obrigatório somente quando a forma de pagamento é crédito.
-8. Parcelamento usa transação PDO e cria as parcelas.
-9. Anotações possuem tabela própria.
-10. Exclusão de receitas/despesas usa prepared statements.
-11. Dashboard tem filtro por mês/ano.
-12. `valor_real` do banco é exposto também como `valor_realizado` para os gráficos.
-
-## Instalação
-
-1. Crie o banco executando `database/gestao_familiar_corrigido.sql` no phpMyAdmin.
-2. Copie o projeto para `C:\wamp64\www\CasaOrganizada`.
-3. Confira `config/conexao.php`:
-   - host
-   - banco
-   - usuário
-   - senha
-4. Abra:
-   `http://localhost/CasaOrganizada/index.php?route=dashboard`
-
-## Observação sobre dados existentes
-
-O SQL atual do projeto antigo contém uma tabela simples `gastos` e depois uma estrutura avançada `despesas`. Além disso, `receitas` aparece em duas versões. Não execute o SQL antigo por cima do banco atual sem backup.
-
-A versão corrigida usa a estrutura relacional:
-
-- receitas
-- despesas
-- parcelas
-- categorias
-- cartoes
-- membros_familia
-- anotacoes
-
-O campo de membro é opcional no banco e não aparece mais no cadastro.
-
-## Diagnóstico
-
-Se o projeto ainda mostrar números zerados, o problema deixa de ser o gráfico e passa a ser:
-
-- banco configurado errado;
-- tabela sem registros;
-- estrutura do banco diferente da migration;
-- usuário do MySQL sem permissão.
-
-O arquivo `config/conexao.php` centraliza essa conexão.
-
-## Usando o Supabase como banco PostgreSQL
-
-O Supabase fornece o banco PostgreSQL e a API, mas não executa esta aplicação PHP.
-Publique os arquivos PHP em um hosting com PHP 8+ e use o Supabase somente como banco:
-
-1. No painel do Supabase, abra **SQL Editor** e execute `database/supabase.sql`.
-2. No hosting PHP, habilite a extensão `pdo_pgsql`.
-3. Configure as variáveis de ambiente abaixo no hosting:
-
-   ```text
-   CASAORGANIZADA_DB_DRIVER=pgsql
-   CASAORGANIZADA_DB_HOST=seu-host-do-supabase
-   CASAORGANIZADA_DB_PORT=5432
-   CASAORGANIZADA_DB_NAME=postgres
-   CASAORGANIZADA_DB_USER=postgres
-   CASAORGANIZADA_DB_PASS=sua-senha-do-banco
-   ```
-
-   Use os dados exibidos em **Connect > Connection string > PHP (PDO)**. Em
-   hostings com muitas conexões simultâneas, o pooler do Supabase normalmente
-   usa a porta `6543` e o usuário fornecido pelo próprio pooler.
-4. Envie o projeto para o hosting PHP e acesse a URL publicada. O repositório
-   GitHub pode ser usado para versionamento, mas não publica PHP diretamente no
-   Supabase.
-
-Para continuar usando o MySQL local, não defina `CASAORGANIZADA_DB_DRIVER`:
-`config/conexao.php` mantém `mysql` como padrão.
-
-## Publicando no WapServerOnline (ou outro hosting via FTP)
-
-1. **Requisito mínimo**: PHP 8.0+ com extensões `pdo_mysql` e `mbstring` habilitadas.
-   Se o painel do hosting não mostrar a versão, crie um arquivo temporário
-   `phpinfo.php` na raiz com `<?php phpinfo();`, acesse-o pelo navegador para
-   conferir a versão e **apague-o em seguida** (nunca deixe phpinfo() público).
-2. Crie o banco de dados e o usuário MySQL pelo painel/phpMyAdmin do hosting,
-   depois importe `database/gestao_familiar_corrigido.sql`.
-3. Envie todo o conteúdo do projeto por FTP para a pasta pública do domínio
-   (`public_html`, `www` ou equivalente). O `.htaccess` já bloqueia o acesso
-   direto às pastas `config/`, `app/`, `database/` e `views/`.
-4. `config/conexao.php` **não é enviado pelo git** (está no `.gitignore`).
-   Copie `config/conexao.example.php` para `config/conexao.php` diretamente
-   no servidor (via FTP ou gerenciador de arquivos) e preencha `DB_HOST`,
-   `DB_NAME`, `DB_USER` e `DB_PASS` com os dados fornecidos pelo hosting.
-5. Troque a senha do usuário `admin@casaorganizada.com` (padrão `admin123`)
-   assim que conseguir logar — é uma senha de exemplo usada apenas em
-   desenvolvimento.
-6. Confirme que o site responde em HTTPS; a sessão só marca o cookie como
-   seguro quando a requisição chega via HTTPS (`config/seguranca.php`).
-7. Erros do PHP não aparecem mais na tela em produção (ver topo de
-   `index.php`); consulte o log de erros do hosting caso algo falhe.
-
-## Protegendo o acesso ao banco de dados
-
-1. **Nunca use o usuário `root`** em produção. No painel do hosting, crie um
-   usuário de banco dedicado só para esta aplicação, com privilégios apenas
-   sobre o banco `gestao_familiar` (SELECT, INSERT, UPDATE, DELETE, CREATE,
-   ALTER) — evite `GRANT ALL` global.
-2. Use uma senha forte e aleatória (bem diferente da senha `4605` usada em
-   desenvolvimento local), por exemplo:
-   `b1452c9addfb1f08e28072f2` (gerada agora só como exemplo — gere a sua e
-   guarde em um cofre de senhas, não em chat ou anotações).
-3. A maioria dos hostings compartilhados já restringe o MySQL a conexões
-   `localhost` (o próprio servidor). Confirme essa opção no painel e **não
-   habilite "acesso remoto ao banco"** a menos que seja estritamente
-   necessário; se precisar, restrinja por IP.
-4. Mantenha `config/conexao.php` fora do git (já está no `.gitignore`) e
-   com permissão de leitura restrita no servidor (via FTP, ajuste a
-   permissão do arquivo para `640` ou o mais restritivo que o hosting
-   permitir).
-5. Ative backups automáticos do banco pelo painel do hosting (ou exporte
-   periodicamente pelo phpMyAdmin) antes de qualquer alteração maior.
-6. Troque as senhas padrão de `admin@casaorganizada.com` e
-   `matheusviniciuscaieiras@gmail.com` assim que o primeiro login funcionar.
+Supabase nunca devem ser colocadas em JavaScript publicado.

@@ -100,6 +100,11 @@ O arquivo `config/conexao.php` centraliza essa conexão.
 5. Se o ambiente serverless do Vercel limitar sua sessão/autenticação, publique
    o PHP em Render, Railway ou hosting compartilhado e mantenha o Supabase como
    banco PostgreSQL.
+6. Se aparecer "Erro do servidor" no Vercel:
+   - abra **Vercel > Project > Deployments > Functions Logs**;
+   - confirme que `CASAORGANIZADA_DB_*` está preenchido para Production;
+   - verifique se a porta/host do Supabase está correta (5432 direto ou 6543 pooler);
+   - valide se o `CASAORGANIZADA_DB_SSL_MODE` está como `require`.
 
 ## Publicando no WapServerOnline (ou outro hosting via FTP)
 

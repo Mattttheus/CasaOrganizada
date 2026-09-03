@@ -1,5 +1,28 @@
 # CasaOrganizada — correção de integração com MySQL
 
+## Versão para GitHub Pages
+
+O arquivo `index.html` é a entrada da versão estática do projeto. Ele usa
+`assets/js/app.js` e `assets/css/static.css`, sem PHP, Apache ou banco local.
+Essa versão funciona no GitHub Pages com login demonstrativo e salva os dados
+no `localStorage` do navegador usado. Portanto, cada navegador terá seus
+próprios dados.
+
+Para publicar:
+
+1. Faça commit e push dos arquivos para o GitHub.
+2. No repositório, abra **Settings > Pages**.
+3. Em **Build and deployment**, selecione **Deploy from a branch**.
+4. Escolha a branch `main` e a pasta `/ (root)`, depois clique em **Save**.
+5. Acesse a URL exibida pelo GitHub, normalmente
+   `https://mattttheus.github.io/CasaOrganizada/`.
+
+O `index.php` e as pastas PHP originais continuam no repositório para a
+versão com servidor. O GitHub Pages usará automaticamente `index.html`.
+Para compartilhar dados entre usuários, a camada `localStorage` deverá ser
+substituída por uma API pública, como Supabase Auth + RLS; chaves secretas do
+Supabase nunca devem ser colocadas no JavaScript publicado.
+
 ## Problemas corrigidos
 
 1. Dashboard passa a buscar receitas e despesas diretamente do MySQL.
@@ -53,6 +76,34 @@ Se o projeto ainda mostrar números zerados, o problema deixa de ser o gráfico 
 - usuário do MySQL sem permissão.
 
 O arquivo `config/conexao.php` centraliza essa conexão.
+
+## Usando o Supabase como banco PostgreSQL
+
+O Supabase fornece o banco PostgreSQL e a API, mas não executa esta aplicação PHP.
+Publique os arquivos PHP em um hosting com PHP 8+ e use o Supabase somente como banco:
+
+1. No painel do Supabase, abra **SQL Editor** e execute `database/supabase.sql`.
+2. No hosting PHP, habilite a extensão `pdo_pgsql`.
+3. Configure as variáveis de ambiente abaixo no hosting:
+
+   ```text
+   CASAORGANIZADA_DB_DRIVER=pgsql
+   CASAORGANIZADA_DB_HOST=seu-host-do-supabase
+   CASAORGANIZADA_DB_PORT=5432
+   CASAORGANIZADA_DB_NAME=postgres
+   CASAORGANIZADA_DB_USER=postgres
+   CASAORGANIZADA_DB_PASS=sua-senha-do-banco
+   ```
+
+   Use os dados exibidos em **Connect > Connection string > PHP (PDO)**. Em
+   hostings com muitas conexões simultâneas, o pooler do Supabase normalmente
+   usa a porta `6543` e o usuário fornecido pelo próprio pooler.
+4. Envie o projeto para o hosting PHP e acesse a URL publicada. O repositório
+   GitHub pode ser usado para versionamento, mas não publica PHP diretamente no
+   Supabase.
+
+Para continuar usando o MySQL local, não defina `CASAORGANIZADA_DB_DRIVER`:
+`config/conexao.php` mantém `mysql` como padrão.
 
 ## Publicando no WapServerOnline (ou outro hosting via FTP)
 

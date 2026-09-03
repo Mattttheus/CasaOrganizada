@@ -8,12 +8,12 @@
   ],
   "routes": [
     {
-      "src": "/(config|database|app|views)(?:/.*)?",
-      "status": 404
+      "src": "/(config|database|app|views)(/.*)?",
+      "dest": "/404"
     },
     {
       "src": "/.*\\.(sql|md|log|env|gitignore)$",
-      "status": 404
+      "dest": "/404"
     },
     {
       "handle": "filesystem"

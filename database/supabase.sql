@@ -114,6 +114,18 @@ create table if not exists notas_tarefas (
     criado_em timestamptz not null default now()
 );
 
+-- Objetivos e metas da família (casa, carro, viagens...)
+create table if not exists objetivos (
+    id uuid primary key default gen_random_uuid(),
+    nome varchar(100) not null,
+    categoria varchar(20) not null default 'Outro' check (categoria in ('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Outro')),
+    valor_meta numeric(12, 2),
+    valor_atual numeric(12, 2) not null default 0 check (valor_atual >= 0),
+    prazo date,
+    criado_por uuid references auth.users (id) on delete set null,
+    criado_em timestamptz not null default now()
+);
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security — qualquer usuário autenticado (toda a família) tem
 -- acesso total aos dados da casa; usuários anônimos não acessam nada.
@@ -125,6 +137,7 @@ alter table receitas enable row level security;
 alter table despesas enable row level security;
 alter table parcelamentos enable row level security;
 alter table notas_tarefas enable row level security;
+alter table objetivos enable row level security;
 
 drop policy if exists "perfis: leitura autenticada" on perfis;
 create policy "perfis: leitura autenticada" on perfis
@@ -138,7 +151,7 @@ do $$
 declare
     tabela text;
 begin
-    foreach tabela in array array['membros_familia', 'cartoes', 'receitas', 'despesas', 'parcelamentos', 'notas_tarefas']
+    foreach tabela in array array['membros_familia', 'cartoes', 'receitas', 'despesas', 'parcelamentos', 'notas_tarefas', 'objetivos']
     loop
         execute format('drop policy if exists "%s: acesso autenticado" on %I;', tabela, tabela);
         execute format(
@@ -147,3 +160,6 @@ begin
         );
     end loop;
 end $$;
+
+-- Despesas: quem gastou (pessoa da família ou conta). Vazio = quem lançou a despesa.
+alter table despesas add column if not exists gasto_por varchar(100);

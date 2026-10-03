@@ -1,0 +1,12 @@
+{
+  "name": "casa-organizada",
+  "private": true,
+  "description": "Casa Organizada — SPA de finanças da família (sem build). Os testes usam só o Node (node:test).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\"",
+    "test:dominio": "node --test tests/dominio.test.mjs",
+    "test:api": "node --test tests/api.test.mjs",
+    "test:seguranca": "node --test tests/seguranca.test.mjs"
+  }
+}

@@ -1,6 +1,7 @@
-// Página de Calendário: notas/tarefas e datas de contas a pagar (despesas)
-// e a receber (receitas). Módulo decidido: não conhece `layout()` do app.js,
-// só devolve o HTML de conteúdo — quem monta a página é app.js.
+// Página de Calendário: notas/tarefas, contas a pagar (despesas) e a receber (receitas), e
+// quanto foi gasto em cada dia e por quem. Só devolve o HTML do conteúdo; quem monta a página
+// (layout) é paginas/financas.js.
+import { quemGastou, resumoGastos } from './dominio.js';
 import { esc, money, dateBR, todayStr } from './helpers.js';
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -14,6 +15,10 @@ export const calState = { month: startOfMonth(new Date()), selected: todayStr() 
 export function calNav(delta) { calState.month.setMonth(calState.month.getMonth() + delta); }
 export function calGoToday() { calState.month = startOfMonth(new Date()); calState.selected = todayStr(); }
 export function calSelectDay(dateStr) { calState.selected = dateStr; }
+/** Abre o calendário no mês do dia e já seleciona o dia (vindo do relatório de despesas). */
+export function calIrPara(dateStr) { calState.month = startOfMonth(new Date(dateStr + 'T00:00')); calState.selected = dateStr; }
+
+const pessoasTexto = pessoas => pessoas.map(([nome, valor]) => `${esc(nome)} ${money(valor)}`).join(' · ');
 
 export function despesaStatus(item) {
     if (item.status === 'Pago') return { label: 'Pago', cls: '' };
@@ -45,6 +50,7 @@ function monthGrid(db) {
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = toISO(year, month, day);
         const { despesas, receitas, notas } = dayItems(db, dateStr);
+        const gasto = despesas.filter(item => item.status !== 'Previsto').reduce((sum, item) => sum + Number(item.valor), 0);
         const overdue = despesas.some(item => item.status === 'Previsto' && item.data < today) || receitas.some(item => item.status === 'Previsto' && item.data < today);
         const classes = ['cal-day'];
         if (dateStr === today) classes.push('is-today');
@@ -52,6 +58,7 @@ function monthGrid(db) {
         if (overdue) classes.push('has-overdue');
         cells.push(`<button type="button" class="${classes.join(' ')}" data-cal-day="${dateStr}">
             <span class="cal-day-num">${day}</span>
+            ${gasto ? `<span class="cal-day-gasto" title="Gasto no dia">${money(gasto)}</span>` : ''}
             <span class="cal-day-dots">
                 ${despesas.length ? `<i class="dot red" title="${despesas.length} conta(s) a pagar"></i>` : ''}
                 ${receitas.length ? `<i class="dot" title="${receitas.length} receita(s) a receber"></i>` : ''}
@@ -70,9 +77,11 @@ function monthSummary(db) {
     const receitasMes = db.receitas.filter(item => item.data.startsWith(prefix));
     const aPagar = despesasMes.filter(item => item.status === 'Previsto').reduce((sum, item) => sum + Number(item.valor), 0);
     const aReceber = receitasMes.filter(item => item.status === 'Previsto').reduce((sum, item) => sum + Number(item.valor), 0);
+    const gastos = resumoGastos(db.despesas, `${prefix}-01`, `${prefix}-31`, db.nomes);
     const atrasadas = despesasMes.filter(item => item.status === 'Previsto' && item.data < todayStr()).length
         + receitasMes.filter(item => item.status === 'Previsto' && item.data < todayStr()).length;
     return `<div class="grid-metrics cal-summary">
+        <div class="card metric"><div class="metric-label">Gasto no mês (pago)</div><div class="metric-value">${money(gastos.total)}</div>${gastos.porPessoa.length ? `<small class="muted">${pessoasTexto(gastos.porPessoa)}</small>` : ''}</div>
         <div class="card metric"><div class="metric-label">A pagar no mês</div><div class="metric-value">${money(aPagar)}</div></div>
         <div class="card metric"><div class="metric-label">A receber no mês</div><div class="metric-value">${money(aReceber)}</div></div>
         <div class="card metric"><div class="metric-label">Itens atrasados</div><div class="metric-value">${atrasadas}</div></div>
@@ -81,14 +90,16 @@ function monthSummary(db) {
 
 function dayDetail(db) {
     const { despesas, receitas, notas } = dayItems(db, calState.selected);
-    const rowDespesa = item => { const status = despesaStatus(item); return `<tr><td><strong>${esc(item.descricao)}</strong></td><td>${money(item.valor)}</td><td><span class="badge ${status.cls}">${status.label}</span></td><td>${item.status === 'Previsto' ? `<button class="btn" data-toggle="despesas:${item.id}:status:Pago">Marcar pago</button>` : `<button class="btn" data-toggle="despesas:${item.id}:status:Previsto">Desfazer</button>`} <button class="btn btn-danger" data-delete="despesas:${item.id}">Excluir</button></td></tr>`; };
+    const gastoDia = resumoGastos(db.despesas, calState.selected, calState.selected, db.nomes);
+    const rowDespesa = item => { const status = despesaStatus(item); return `<tr><td><strong>${esc(item.descricao)}</strong><br><small class="muted">${esc(item.categoria || '')}</small></td><td>${esc(quemGastou(item, db.nomes))}</td><td>${money(item.valor)}</td><td><span class="badge ${status.cls}">${status.label}</span></td><td>${item.status === 'Previsto' ? `<button class="btn" data-toggle="despesas:${item.id}:status:Pago">Marcar pago</button>` : `<button class="btn" data-toggle="despesas:${item.id}:status:Previsto">Desfazer</button>`} <button class="btn btn-danger" data-delete="despesas:${item.id}">Excluir</button></td></tr>`; };
     const rowReceita = item => { const status = receitaStatus(item); return `<tr><td><strong>${esc(item.descricao)}</strong></td><td>${money(item.valor)}</td><td><span class="badge ${status.cls}">${status.label}</span></td><td>${item.status === 'Previsto' ? `<button class="btn" data-toggle="receitas:${item.id}:status:Recebido">Marcar recebido</button>` : `<button class="btn" data-toggle="receitas:${item.id}:status:Previsto">Desfazer</button>`} <button class="btn btn-danger" data-delete="receitas:${item.id}">Excluir</button></td></tr>`; };
     const rowNota = item => `<tr><td>${item.tipo === 'Tarefa' ? '☑' : '📝'} <strong class="${item.concluida ? 'cal-done' : ''}">${esc(item.titulo)}</strong>${item.descricao ? `<br><small>${esc(item.descricao)}</small>` : ''}</td><td><span class="badge">${item.tipo}</span></td><td>${!item.concluida ? `<button class="btn" data-toggle="notas:${item.id}:concluida:true">Concluir</button>` : `<button class="btn" data-toggle="notas:${item.id}:concluida:false">Reabrir</button>`} <button class="btn btn-danger" data-delete="notas:${item.id}">Excluir</button></td></tr>`;
 
     return `<section class="card cal-detail">
         <div class="card-head"><h2>${dateBR(calState.selected)}</h2><span class="badge">${despesas.length + receitas.length + notas.length} item(ns)</span></div>
         <div class="card-body stack">
-            ${despesas.length ? `<div class="table-wrap"><table><thead><tr><th>Conta a pagar</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${despesas.map(rowDespesa).join('')}</tbody></table></div>` : ''}
+            ${gastoDia.total ? `<div class="cal-gasto-dia"><strong>Gasto no dia: ${money(gastoDia.total)}</strong><span class="muted">${pessoasTexto(gastoDia.porPessoa)}</span></div>` : ''}
+            ${despesas.length ? `<div class="table-wrap"><table><thead><tr><th>Despesa</th><th>Quem gastou</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${despesas.map(rowDespesa).join('')}</tbody></table></div>` : ''}
             ${receitas.length ? `<div class="table-wrap"><table><thead><tr><th>Receita a receber</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${receitas.map(rowReceita).join('')}</tbody></table></div>` : ''}
             ${notas.length ? `<div class="table-wrap"><table><thead><tr><th>Nota/Tarefa</th><th>Tipo</th><th></th></tr></thead><tbody>${notas.map(rowNota).join('')}</tbody></table></div>` : ''}
             ${!despesas.length && !receitas.length && !notas.length ? '<div class="empty">Nada agendado para este dia.</div>' : ''}
@@ -106,7 +117,7 @@ function dayDetail(db) {
 export function calendarContent(db) {
     const label = `${MONTHS[calState.month.getMonth()]} de ${calState.month.getFullYear()}`;
     return `<div class="page-heading">
-            <div><h1>Calendário</h1><p>Notas, tarefas e datas de contas a pagar e a receber.</p></div>
+            <div><h1>Calendário</h1><p>Quanto foi gasto em cada dia e por quem, contas a pagar e a receber, notas e tarefas.</p></div>
             <div class="actions cal-nav">
                 <button class="btn" data-cal-nav="-1">‹</button>
                 <strong class="cal-month-label">${label}</strong>

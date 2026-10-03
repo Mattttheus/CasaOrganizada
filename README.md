@@ -1,24 +1,45 @@
 # Casa Organizada
 
 Aplicativo SPA (HTML + CSS + JavaScript puro, sem build) para organizar as
-finanças da família, com **Supabase** (Postgres + Auth) como backend. Roda
-tanto no **GitHub Pages** quanto na **Vercel**, sem servidor próprio.
+finanças da família: receitas, despesas, cartões, parcelamentos, calendário,
+**objetivos e metas** (com reservas de emergência e investimentos vinculados ao
+Projeto invest) e os acessos da família.
 
-## Como funciona
+Três backends, escolhidos automaticamente (`BACKEND = 'auto'` em `assets/js/config.js`):
 
-- `index.html` é a única página de entrada (roteamento por hash, `#/pagina`).
-- `assets/css/static.css` cuida de todo o visual.
-- `assets/js/` contém a lógica da SPA, dividida em módulos ES:
-  - `config.js` — URL e chave anon do seu projeto Supabase (edite este arquivo).
-  - `supabaseClient.js` — cria o cliente Supabase (via CDN, sem npm/build).
-  - `data.js` — leitura/escrita das tabelas (receitas, despesas, cartões,
-    parcelamentos, membros, notas/tarefas).
-  - `calendar.js` — página de Calendário (notas, tarefas, contas a pagar e a
-    receber por data).
-  - `app.js` — login/cadastro, navegação e as demais páginas.
-- Login e dados ficam no Supabase (Auth + Postgres com Row Level Security);
-  qualquer pessoa da família autenticada vê e edita os mesmos registros.
-- `database/supabase.sql` é o schema a rodar no seu projeto Supabase.
+- **Rede local (WampServer)** — API PHP em `api/` + MySQL. É o uso principal.
+- **GitHub Pages / Vercel** — modo **vitrine**, com dados fictícios e nada é salvo.
+- **Supabase** (opcional, `BACKEND = 'supabase'`) — Postgres + Auth na nuvem.
+
+## Arquitetura
+
+```
+index.html                  entrada única (rotas por hash: #/pagina)
+assets/css/static.css       visual (tokens de cor claro/escuro compartilhados com o Projeto invest)
+assets/js/
+  app.js                    inicialização
+  backend.js                escolhe o backend: localApi.js (MySQL) | data.js (Supabase) | demo.js (vitrine)
+  contexto.js               estado compartilhado (dados, sessão, página) e constantes
+  dominio.js                regras de negócio puras (progresso das metas, totais, endereço de volta)
+  ui.js                     componentes de interface (formulários, avisos, botão de tema)
+  paginas/                  uma página por arquivo: layout, acesso, financas, objetivos, familia, investimentos
+  roteador.js               desenha a página da rota atual
+  sincronizacao.js          carrega os dados e controla entrada/saída da sessão
+  acoes.js                  formulários e cliques
+  tema.js                   tema claro/escuro (mesmo arquivo no Projeto invest)
+api/
+  index.php                 roteador: ?acao= -> [método HTTP, função]
+  nucleo/                   infraestrutura: http, banco, sessao, limites, validacao, invest (ponte)
+  modulos/                  regras de negócio: autenticacao, colecoes, objetivos, usuarios, investimentos
+  config.php                conexão (credenciais reais em config.local.php, fora do git)
+database/mysql.sql          schema MySQL (idempotente: pode importar de novo)
+database/supabase.sql       schema + RLS do Supabase
+tests/                      testes automatizados (veja "Testes")
+```
+
+Dependências apontam para dentro: páginas usam `dominio.js`/`ui.js`, nunca o
+contrário; na API, `modulos/` usa `nucleo/`. Arquivos de `api/nucleo` e
+`api/modulos` não são acessíveis pela web.
 
 ## 1. Criar e configurar o projeto Supabase
 
@@ -40,14 +61,81 @@ tanto no **GitHub Pages** quanto na **Vercel**, sem servidor próprio.
 > navegador. Quem protege os dados é o Row Level Security (RLS) já criado
 > pelo `supabase.sql`. **Nunca** use a chave `service_role` no front-end.
 
-## 2. Rodar localmente
+## Modos de funcionamento
 
-Abra `index.html` direto no navegador, ou sirva a pasta com qualquer
-servidor estático (alguns navegadores bloqueiam módulos ES via `file://`):
+Com `BACKEND = 'auto'` (padrão em `assets/js/config.js`):
+
+- **localhost / rede local (192.168.x.x)** — app completo com MySQL do WAMP.
+- **GitHub Pages / Vercel** — **modo vitrine**: entra direto como "Visitante"
+  com dados fictícios (`assets/js/demo.js`); cadastrar, editar e excluir
+  ficam desativados. Para ter dados reais online, use `BACKEND = 'supabase'`.
+
+## 2. Rodar localmente com WampServer (MySQL)
+
+Na rede local o app não precisa do Supabase: ao abrir em `localhost` ou num IP
+`192.168.x.x` ele usa a API PHP em `api/index.php` + MySQL do WAMP.
+
+1. Abra o phpMyAdmin (http://localhost/phpmyadmin), vá em **Importar** e
+   envie [`database/mysql.sql`](database/mysql.sql). Ele cria o banco
+   `casa_organizada` com todas as tabelas.
+2. Crie um usuário do MySQL só para a API (não use o root) e coloque as
+   credenciais em `api/config.local.php` (fora do git):
+   ```sql
+   CREATE USER 'casa_app'@'localhost' IDENTIFIED BY 'senha-forte';
+   CREATE USER 'casa_app'@'127.0.0.1' IDENTIFIED BY 'senha-forte';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON casa_organizada.* TO 'casa_app'@'localhost', 'casa_app'@'127.0.0.1';
+   ```
+   ```php
+   <?php return ['user' => 'casa_app', 'pass' => 'senha-forte'];
+   ```
+3. Acesse http://192.168.1.51:8082 (VirtualHost dedicado; `localhost`
+   redireciona para o IP fixo). **Não há cadastro aberto**: o administrador cria
+   os acessos em **Família → Acessos ao sistema**.
+
+### Login único com o Projeto invest
+
+O Casa Organizada faz o login dos dois projetos. O Projeto invest
+(`http://IP:8081`) só abre para quem está logado aqui **e** tem acesso aos
+investimentos (marcado pelo administrador na página Família).
+
+- O invest valida a sessão chamando `api/index.php?acao=sessao` pelo próprio PC.
+- O painel mostra **Renda de investimentos** e os objetivos somam o valor de
+  mercado dos ativos vinculados (`resumo.php` do invest via `acao=invest_resumo`).
+- "Investir pelo Projeto invest" num objetivo registra a compra no invest
+  (mesmas regras do Cadastro) e vincula o ativo ao objetivo.
+
+### Segurança
+
+- **Login:** mensagem única para e-mail inexistente e senha errada (não revela
+  contas) com o mesmo tempo de resposta; 5 senhas erradas por e-mail (20 por
+  aparelho) bloqueiam por 15 min; novo ID de sessão a cada login.
+- **Sessão:** cookie `HttpOnly` + `SameSite=Strict`, expira após 8 h sem uso
+  ou 24 h desde o login; permissões relidas do banco a cada pedido.
+- **Contas:** só o administrador cria/edita/exclui acessos; senhas com 8+
+  caracteres, letras e números; trocar a própria senha exige a atual (com
+  limite de tentativas); o sistema nunca fica sem administrador.
+- **API:** só aceita JSON, recusa POST de outros sites (Origin), valida todos os
+  campos no servidor, SQL só com parâmetros e nomes de tabela fixos, erros do
+  banco nunca vão para o navegador; usuário MySQL com permissão mínima.
+- **Apache:** CSP, `X-Frame-Options`, `nosniff`, versões escondidas, TRACE
+  desligado; `.git`, `database/`, `tests/`, `api/nucleo|modulos` e
+  configurações bloqueados; acesso só deste PC e da rede 192.168.1.x.
+
+## Testes
+
+Só precisam do Node (sem `npm install`):
 
 ```bash
-npx serve .
+npm test                 # tudo
+npm run test:dominio     # regras de negócio do front-end
+npm run test:api         # API completa num banco separado (casa_organizada_teste), com php -S
+npm run test:seguranca   # auditoria só-leitura do servidor real (cabeçalhos, bloqueios, login)
 ```
+
+`test:api` recria `casa_organizada_teste` a partir de `database/mysql.sql`,
+sobe um servidor PHP na porta 8099 e apaga o banco de teste no fim: os dados
+reais não são tocados. Caminhos do WAMP: variáveis `CASA_PHP` e `CASA_MYSQL`;
+host da auditoria: `CASA_HOST` (padrão 192.168.1.51).
 
 ## 3. Publicar no GitHub Pages
 
@@ -71,22 +159,19 @@ npx serve .
 
 ## Páginas disponíveis
 
-Dashboard, Receitas, Despesas, Cartões, Parcelamentos, **Calendário** (notas,
-tarefas e datas de contas a pagar/a receber, navegável por mês) e Família.
-
-## Estrutura do projeto
-
-```
-index.html              # ponto de entrada
-assets/css/static.css   # estilos
-assets/js/config.js     # credenciais do Supabase (edite aqui)
-assets/js/supabaseClient.js
-assets/js/data.js
-assets/js/calendar.js
-assets/js/app.js
-database/supabase.sql   # schema + RLS para rodar no Supabase
-vercel.json             # configuração de deploy na Vercel
-```
+- **Visão geral** — saldo, metas de gastos, renda de investimentos e objetivos.
+- **Receitas** e **Despesas** — a despesa registra **quem gastou**; a página traz o
+  relatório de gastos de **hoje, do mês e do ano** (comparado com a meta geral),
+  por pessoa, por categoria e dia a dia (cada dia abre no calendário).
+- **Calendário** — quanto foi gasto em cada dia e por quem, contas a pagar/receber,
+  notas e tarefas.
+- **Metas de gastos** — limites **diários, mensais e anuais** (gerais ou por
+  categoria) × gasto real, projeção do período e quanto ainda dá para gastar por
+  dia; cada mudança de limite fica no histórico com nota e autor, e os períodos
+  antigos são comparados com o limite que valia neles.
+- **Objetivos** — metas de dinheiro (casa, carro, viagens, reservas de emergência…)
+  com dinheiro guardado, investimentos do Projeto invest e quem investiu.
+- **Cartões**, **Parcelamentos** e **Família** (acessos ao sistema e membros).
 
 `database/gestao_familiar_corrigido.sql` é o schema MySQL da versão antiga
 com backend PHP (removida) — mantido só como referência histórica.

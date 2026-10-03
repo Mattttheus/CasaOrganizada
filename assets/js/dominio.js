@@ -73,13 +73,19 @@ const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'o
 
 /**
  * Período que contém `dia`, deslocado `atras` períodos para trás: {inicio, fim, rotulo, dias}.
- * Diária = o dia; Mensal = 1º ao último dia do mês; Anual = 1º/jan a 31/dez.
+ * Diária = o dia (relatório "hoje"); Semanal = domingo a sábado (como o calendário);
+ * Mensal = 1º ao último dia do mês; Anual = 1º/jan a 31/dez.
  */
 export function periodoDe(periodo, dia = new Date(), atras = 0) {
     const a = dia.getFullYear(), m = dia.getMonth(), d = dia.getDate();
     if (periodo === 'Diária') {
         const x = new Date(a, m, d - atras);
         return { inicio: iso(x), fim: iso(x), rotulo: `${doisDigitos(x.getDate())}/${doisDigitos(x.getMonth() + 1)}`, dias: 1 };
+    }
+    if (periodo === 'Semanal') {
+        const ini = new Date(a, m, d - dia.getDay() - 7 * atras), fim = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + 6);
+        const dm = x => `${doisDigitos(x.getDate())}/${doisDigitos(x.getMonth() + 1)}`;
+        return { inicio: iso(ini), fim: iso(fim), rotulo: `${dm(ini)} a ${dm(fim)}`, dias: 7 };
     }
     if (periodo === 'Mensal') {
         const ini = new Date(a, m - atras, 1), fim = new Date(a, m - atras + 1, 0);
@@ -128,9 +134,9 @@ export function avaliarMeta(meta, versoes, despesas, hoje = new Date(), atras = 
     return r;
 }
 
-/** Histórico de períodos (mais recente primeiro): 7 dias, 6 meses ou 3 anos. */
+/** Histórico de períodos (mais recente primeiro): 8 semanas, 6 meses ou 3 anos. */
 export function historicoMeta(meta, versoes, despesas, hoje = new Date()) {
-    const quantos = { 'Diária': 7, Mensal: 6, Anual: 3 }[meta.periodo] || 6;
+    const quantos = { Semanal: 8, Mensal: 6, Anual: 3 }[meta.periodo] || 6;
     return Array.from({ length: quantos }, (_, atras) => avaliarMeta(meta, versoes, despesas, hoje, atras));
 }
 

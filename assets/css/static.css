@@ -349,19 +349,30 @@ a {
 
 .metric {
     padding: 20px;
-    border-top: 3px solid var(--green);
+    border-top: 3px solid var(--line);
 }
 
-.metric:nth-child(2) {
-    border-color: var(--coral);
+/* Cor pela situação (mesmo padrão em todos os painéis):
+   verde = dentro da meta / positivo; amarelo = atenção (80% a 100%);
+   vermelho = estourou / negativo / atrasado; azul = informativo, sem meta. */
+.card.status-ok {
+    border-color: var(--green);
+    border-top-width: 3px;
 }
 
-.metric:nth-child(3) {
+.card.status-atencao {
     border-color: var(--gold);
+    border-top-width: 3px;
 }
 
-.metric:nth-child(4) {
+.card.status-estourou {
+    border-color: var(--coral);
+    border-top-width: 3px;
+}
+
+.card.status-neutro {
     border-color: var(--blue);
+    border-top-width: 3px;
 }
 
 .metric-label {

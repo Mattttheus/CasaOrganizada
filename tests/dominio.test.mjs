@@ -71,10 +71,10 @@ test('resumoObjetivos: totais e progresso médio só dos que têm meta', () => {
 
 test('totalPorPessoa agrupa e ordena do maior para o menor', () => {
     const r = totalPorPessoa([
-        { valor: 12500, investido_por: 'Carlos' }, { valor: 12500, investido_por: 'Matheus' },
-        { valor: 2100, investido_por: 'Matheus' }, { valor: 10, investido_por: null },
+        { valor: 12500, investido_por: 'Carlos' }, { valor: 12500, investido_por: 'Ana' },
+        { valor: 2100, investido_por: 'Ana' }, { valor: 10, investido_por: null },
     ]);
-    assert.deepEqual(r, [['Matheus', 14600], ['Carlos', 12500], ['Sem registro', 10]]);
+    assert.deepEqual(r, [['Ana', 14600], ['Carlos', 12500], ['Sem registro', 10]]);
 });
 
 test('enderecoDeVolta só aceita http(s) no mesmo host (evita redirecionamento aberto)', () => {
@@ -100,9 +100,14 @@ const despesas = [
     { data: '2025-05-10', valor: 1000, categoria: 'Transporte', status: 'Pago' },
 ];
 
-test('periodoDe: dia, mês (inclusive fevereiro e virada de ano) e ano', () => {
+test('periodoDe: dia, semana (domingo a sábado), mês (inclusive fevereiro e virada de ano) e ano', () => {
     assert.deepEqual(periodoDe('Diária', hoje), { inicio: '2026-10-03', fim: '2026-10-03', rotulo: '03/10', dias: 1 });
     assert.deepEqual(periodoDe('Diária', hoje, 3), { inicio: '2026-09-30', fim: '2026-09-30', rotulo: '30/09', dias: 1 });
+    // 03/10/2026 é sábado: a semana vai de domingo 27/09 a sábado 03/10
+    assert.deepEqual(periodoDe('Semanal', hoje), { inicio: '2026-09-27', fim: '2026-10-03', rotulo: '27/09 a 03/10', dias: 7 });
+    assert.deepEqual(periodoDe('Semanal', hoje, 1), { inicio: '2026-09-20', fim: '2026-09-26', rotulo: '20/09 a 26/09', dias: 7 });
+    assert.deepEqual(periodoDe('Semanal', new Date(2026, 9, 4)), { inicio: '2026-10-04', fim: '2026-10-10', rotulo: '04/10 a 10/10', dias: 7 });   // domingo começa semana nova
+    assert.deepEqual(periodoDe('Semanal', new Date(2027, 0, 1)), { inicio: '2026-12-27', fim: '2027-01-02', rotulo: '27/12 a 02/01', dias: 7 });   // atravessa o ano
     assert.deepEqual(periodoDe('Mensal', hoje), { inicio: '2026-10-01', fim: '2026-10-31', rotulo: 'out/2026', dias: 31 });
     assert.deepEqual(periodoDe('Mensal', hoje, 8), { inicio: '2026-02-01', fim: '2026-02-28', rotulo: 'fev/2026', dias: 28 });
     assert.equal(periodoDe('Mensal', hoje, 10).rotulo, 'dez/2025');
@@ -137,25 +142,28 @@ test('avaliarMeta mensal: real × meta, quanto falta, por dia e projeção do m�
     assert.equal(r.projecao.toFixed(2), (350 / 3 * 31).toFixed(2));   // 3 dias decorridos
 });
 
-test('avaliarMeta diária e anual estourada; período anterior sem projeção', () => {
-    const diaria = avaliarMeta({ periodo: 'Diária', categoria: 'Alimentação' }, [{ valor_limite: 40, vigente_desde: '2026-01-01' }], despesas, hoje);
-    assert.deepEqual([diaria.gasto, diaria.pct, diaria.situacao, diaria.projecao], [50, 125, 'estourou', null]);
+test('avaliarMeta semanal estourada com projeção; período anterior sem projeção', () => {
+    // semana 27/09 a 03/10: Alimentação pagas = 300 (01/10) + 50 (03/10); hoje é o 7º e último dia
+    const semanal = avaliarMeta({ periodo: 'Semanal', categoria: 'Alimentação' }, [{ valor_limite: 280, vigente_desde: '2026-01-01' }], despesas, hoje);
+    assert.deepEqual([semanal.gasto, semanal.pct, semanal.situacao, semanal.porDia, Math.round(semanal.projecao)], [350, 125, 'estourou', 0, 350]);
+    const domingo = avaliarMeta({ periodo: 'Semanal', categoria: null }, [{ valor_limite: 700, vigente_desde: '2026-01-01' }], despesas, new Date(2026, 9, 4));
+    assert.deepEqual([domingo.gasto, domingo.restante, domingo.porDia], [0, 700, 100]);   // 7 dias pela frente
     const setembro = avaliarMeta({ periodo: 'Mensal', categoria: 'Alimentação' }, [{ valor_limite: 1000, vigente_desde: '2026-01-01' }], despesas, hoje, 1);
     assert.deepEqual([setembro.rotulo, setembro.gasto, setembro.pct, setembro.situacao, setembro.projecao], ['set/2026', 900, 90, 'atencao', null]);
 });
 
-test('historicoMeta: 7 dias, 6 meses ou 3 anos; cada período com o limite da época', () => {
+test('historicoMeta: 8 semanas, 6 meses ou 3 anos; cada período com o limite da época', () => {
     const versoes = [{ valor_limite: 800, vigente_desde: '2025-01-01' }, { valor_limite: 1200, vigente_desde: '2026-10-01' }];
     const anual = historicoMeta({ periodo: 'Anual', categoria: 'Transporte' }, versoes, despesas, hoje);
     assert.deepEqual(anual.map(r => [r.rotulo, r.limite, r.gasto]), [['2026', 1200, 0], ['2025', 800, 1000], ['2024', null, 0]]);
-    assert.equal(historicoMeta({ periodo: 'Diária' }, versoes, despesas, hoje).length, 7);
+    assert.equal(historicoMeta({ periodo: 'Semanal' }, versoes, despesas, hoje).length, 8);
     assert.equal(historicoMeta({ periodo: 'Mensal' }, versoes, despesas, hoje).length, 6);
 });
 
 // ------------------------------------------------------------------ relatório de gastos
 import { quemGastou, resumoGastos } from '../assets/js/dominio.js';
 
-const nomes = { u1: 'Matheus', u2: 'Carlos' };
+const nomes = { u1: 'Ana', u2: 'Carlos' };
 const gastos = [
     { data: '2026-10-01', valor: 100, categoria: 'Alimentação', status: 'Pago', criado_por: 'u1' },
     { data: '2026-10-01', valor: 40, categoria: 'Lazer', status: 'Pago', criado_por: 'u1', gasto_por: 'Júlia' },
@@ -167,18 +175,18 @@ const gastos = [
 
 test('quemGastou: o informado na despesa, senão quem lançou', () => {
     assert.equal(quemGastou(gastos[1], nomes), 'Júlia');
-    assert.equal(quemGastou(gastos[0], nomes), 'Matheus');
+    assert.equal(quemGastou(gastos[0], nomes), 'Ana');
     assert.equal(quemGastou(gastos[5], nomes), 'Sem registro');
 });
 
 test('resumoGastos do mês: total pago, previsto à parte, por pessoa, categoria e dia', () => {
     const r = resumoGastos(gastos, '2026-10-01', '2026-10-31', nomes);
     assert.deepEqual([r.total, r.previsto, r.quantidade], [200, 500, 3]);
-    assert.deepEqual(r.porPessoa, [['Matheus', 100], ['Carlos', 60], ['Júlia', 40]]);
+    assert.deepEqual(r.porPessoa, [['Ana', 100], ['Carlos', 60], ['Júlia', 40]]);
     assert.deepEqual(r.porCategoria, [['Alimentação', 160], ['Lazer', 40]]);
     assert.deepEqual(r.linhaDoTempo.map(p => [p.chave, p.total, p.itens, p.pessoas]), [
         ['2026-10-03', 60, 1, [['Carlos', 60]]],
-        ['2026-10-01', 140, 2, [['Matheus', 100], ['Júlia', 40]]],
+        ['2026-10-01', 140, 2, [['Ana', 100], ['Júlia', 40]]],
     ]);
 });
 

@@ -1,6 +1,8 @@
 -- Casa Organizada — schema MySQL/MariaDB (uso local com WampServer)
 -- Importe pelo phpMyAdmin (aba "Importar") ou cole na aba "SQL".
 -- Pode rodar quantas vezes quiser: todos os comandos são idempotentes.
+-- Só a estrutura: nenhum dado lançado. Depois de importar, crie o primeiro administrador:
+--   php database/criar_admin.php "Seu nome" seu@email.com "senha-com-10+-caracteres"
 --
 -- Mesmo modelo do database/supabase.sql: "casa compartilhada" — qualquer
 -- usuário logado (família toda) lê e escreve os mesmos registros. Os IDs são
@@ -132,16 +134,6 @@ CREATE TABLE IF NOT EXISTS objetivos (
     FOREIGN KEY (criado_por) REFERENCES usuarios (id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- Objetivos iniciais, cada um com R$ 250,00 já guardados (só cria se não existir)
-INSERT INTO objetivos (id, nome, categoria, valor_atual)
-SELECT UUID(), 'Comprar casa', 'Casa', 250 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM objetivos WHERE nome = 'Comprar casa');
-INSERT INTO objetivos (id, nome, categoria, valor_atual)
-SELECT UUID(), 'Comprar carro', 'Carro', 250 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM objetivos WHERE nome = 'Comprar carro');
-INSERT INTO objetivos (id, nome, categoria, valor_atual)
-SELECT UUID(), 'Viagens', 'Viagem', 250 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM objetivos WHERE nome = 'Viagens');
-INSERT INTO objetivos (id, nome, categoria, valor_atual)
-SELECT UUID(), 'Passeios', 'Passeio', 250 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM objetivos WHERE nome = 'Passeios');
-
 -- Lançamentos de cada objetivo: dinheiro guardado ou investimento feito pelo
 -- Casa no Projeto invest (ticker/quantidade/preço = compra registrada lá).
 CREATE TABLE IF NOT EXISTS objetivo_aportes (
@@ -170,17 +162,9 @@ CREATE TABLE IF NOT EXISTS objetivo_ativos (
     FOREIGN KEY (objetivo_id) REFERENCES objetivos (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Histórico: os R$ 250,00 iniciais de cada objetivo padrão, investidos por Matheus
--- (só se ainda não houver lançamentos)
-INSERT INTO objetivo_aportes (id, objetivo_id, tipo, data, valor, descricao, criado_por)
-SELECT UUID(), o.id, 'Dinheiro', DATE(o.criado_em), 250, 'Valor inicial já investido',
-       (SELECT id FROM usuarios WHERE email = 'seu@email.com')
-FROM objetivos o
-WHERE o.nome IN ('Comprar casa', 'Comprar carro', 'Viagens', 'Passeios')
-  AND NOT EXISTS (SELECT 1 FROM objetivo_aportes a WHERE a.objetivo_id = o.id);
-
 -- admin: pode cadastrar, editar e excluir as contas de acesso (página Família).
--- (adiciona a coluna em bancos criados antes dela existir; Matheus começa como admin)
+-- (adiciona a coluna em bancos criados antes dela existir; o primeiro admin é criado com
+--  database/criar_admin.php — sem cadastro aberto, é assim que se entra pela primeira vez)
 SET @tem_coluna = (SELECT COUNT(*) FROM information_schema.columns
     WHERE table_schema = DATABASE() AND table_name = 'usuarios' AND column_name = 'admin');
 SET @sql = IF(@tem_coluna = 0,
@@ -189,8 +173,10 @@ SET @sql = IF(@tem_coluna = 0,
 PREPARE passo FROM @sql;
 EXECUTE passo;
 DEALLOCATE PREPARE passo;
+-- banco antigo sem nenhum admin: a conta mais antiga vira admin (o sistema nunca fica sem)
 UPDATE usuarios SET admin = 1
-WHERE email = 'seu@email.com' AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM usuarios WHERE admin = 1) x);
+WHERE id = (SELECT id FROM (SELECT id FROM usuarios ORDER BY criado_em LIMIT 1) primeira)
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM usuarios WHERE admin = 1) x);
 
 -- Categoria "Reserva" (reserva de emergência) para bancos criados antes dela
 ALTER TABLE objetivos MODIFY COLUMN categoria ENUM('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Outro') NOT NULL DEFAULT 'Outro';
@@ -200,7 +186,7 @@ ALTER TABLE objetivos MODIFY COLUMN categoria ENUM('Casa', 'Carro', 'Viagem', 'P
 CREATE TABLE IF NOT EXISTS metas_gastos (
     id CHAR(36) PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
-    periodo ENUM('Diária', 'Mensal', 'Anual') NOT NULL,
+    periodo ENUM('Semanal', 'Mensal', 'Anual') NOT NULL,
     categoria VARCHAR(60) NULL,
     nota TEXT NULL,
     ativa TINYINT(1) NOT NULL DEFAULT 1,
@@ -231,3 +217,8 @@ SET @sql = IF(@tem_coluna = 0, 'ALTER TABLE despesas ADD COLUMN gasto_por VARCHA
 PREPARE passo FROM @sql;
 EXECUTE passo;
 DEALLOCATE PREPARE passo;
+
+-- Metas de gastos: o período diário virou semanal (domingo a sábado). Converte bancos antigos.
+ALTER TABLE metas_gastos MODIFY COLUMN periodo ENUM('Diária', 'Semanal', 'Mensal', 'Anual') NOT NULL;
+UPDATE metas_gastos SET periodo = 'Semanal' WHERE periodo = 'Diária';
+ALTER TABLE metas_gastos MODIFY COLUMN periodo ENUM('Semanal', 'Mensal', 'Anual') NOT NULL;

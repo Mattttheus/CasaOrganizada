@@ -3,7 +3,7 @@
 import { db, demo, INVEST_URL, today } from '../contexto.js';
 import { investidoNoObjetivo, progressoObjetivo, resumoObjetivos, totalPorPessoa } from '../dominio.js';
 import { esc, money, dateBR } from '../helpers.js';
-import { campo, field, form, select } from '../ui.js';
+import { campo, classeStatus, field, form, metrica, select } from '../ui.js';
 import { ativosInvest } from './investimentos.js';
 import { layout } from './layout.js';
 
@@ -80,9 +80,21 @@ function editar(item, p) {
     </details>`;
 }
 
+/** Objetivos de guardar dinheiro: alcançado = verde; com meta e prazo, atrasado no ritmo = amarelo. */
+function statusDoObjetivo(item, p) {
+    if (!p.meta) return 'neutro';
+    if (p.pct >= 100) return 'ok';
+    if (!item.prazo) return 'neutro';
+    const fim = new Date(item.prazo + 'T00:00');
+    if (fim < new Date()) return 'estourou';   // prazo vencido sem alcançar a meta
+    return p.mensal !== null && p.meses <= 3 && p.pct < 80 ? 'atencao' : 'neutro';
+}
+
+const statusDoProgresso = pct => (pct >= 100 ? 'ok' : 'neutro');
+
 function objetivoCard(item) {
     const p = progresso(item);
-    return `<article class="card objetivo">
+    return `<article class="card objetivo ${classeStatus(statusDoObjetivo(item, p))}">
         <div class="objetivo-topo"><span class="objetivo-icone">${icone(item)}</span><div><h3>${esc(item.nome)}</h3><small class="muted">${esc(item.categoria || 'Outro')}</small></div>${statusDaMeta(p)}</div>
         <div class="objetivo-valores"><strong>${money(p.atual)}</strong><span class="muted">${p.meta ? 'de ' + money(p.meta) : 'acumulados'}</span></div>
         <div class="limit"><i style="width:${p.pct}%"></i></div>
@@ -108,9 +120,8 @@ export function objetivos() {
     const r = resumoObjetivos(lista.map(progresso));
     const novo = form(field('Objetivo', 'nome', 'text', 'required maxlength="100" placeholder="Ex: Reforma da cozinha"') + select('Categoria', 'categoria', CATEGORIAS_OBJETIVO) + field('Valor da meta (R$)', 'valor_meta', 'number', 'min="0.01" step="0.01" placeholder="Ex: 20000"') + field('Já guardado (R$)', 'valor_atual', 'number', 'min="0" step="0.01" value="0"') + field('Prazo', 'prazo', 'date'), 'add-objetivo', 'Novo objetivo');
     const aviso = db.user?.invest && db.invest?.erro ? `<div class="demo-banner">Não foi possível ler o Projeto invest: ${esc(db.invest.erro)}. Os valores dos ativos vinculados não entram na conta.</div>` : '';
-    const metrica = (rotulo, valor) => `<div class="card metric"><div class="metric-label">${rotulo}</div><div class="metric-value">${valor}</div></div>`;
     return layout(`<div class="page-heading"><div><h1>Objetivos e metas</h1><p>Junte dinheiro e investimentos para os sonhos da família e acompanhe quanto falta.</p></div>${db.user?.invest ? `<div class="actions"><a class="btn" href="${INVEST_URL}">▲ Abrir investimentos</a></div>` : ''}</div>${aviso}
-        <div class="grid-metrics">${metrica('Total acumulado', money(r.acumulado))}${metrica('Em investimentos', money(r.investido))}${metrica('Soma das metas', money(r.metas))}${metrica('Progresso médio', r.progressoMedio + '%')}</div>
+        <div class="grid-metrics">${metrica('Total acumulado', money(r.acumulado), r.acumulado > 0 ? 'ok' : 'neutro')}${metrica('Em investimentos', money(r.investido))}${metrica('Soma das metas', money(r.metas))}${metrica('Progresso médio', r.progressoMedio + '%', statusDoProgresso(r.progressoMedio))}</div>
         ${quemInvestiu()}
         ${lista.length ? `<div class="objetivos-grid">${lista.map(objetivoCard).join('')}</div>` : '<div class="card empty">Nenhum objetivo cadastrado ainda.</div>'}
         <datalist id="lista-ativos">${ativosInvest().map(a => `<option value="${esc(a.ticker)}">${esc(a.tipo || '')} · ${money(a.preco)}</option>`).join('')}</datalist>

@@ -1,16 +1,16 @@
-// Metas de gastos: limites diários, mensais e anuais × despesas reais, com histórico de
+// Metas de gastos: limites semanais, mensais e anuais × despesas reais, com histórico de
 // períodos, histórico de alterações do limite (com notas) e o resumo do painel.
 import { db, today } from '../contexto.js';
 import { avaliarMeta, historicoMeta } from '../dominio.js';
 import { esc, money, dateBR } from '../helpers.js';
-import { campo, field, form, marcado, select } from '../ui.js';
+import { campo, classeStatus, field, form, marcado, metrica, select } from '../ui.js';
 import { layout } from './layout.js';
 
-export const PERIODOS = ['Diária', 'Mensal', 'Anual'];
+export const PERIODOS = ['Semanal', 'Mensal', 'Anual'];
 export const CATEGORIAS_DESPESA = ['Todas', 'Moradia', 'Alimentação', 'Transporte', 'Lazer', 'Outros'];
 const ROTULO_SITUACAO = { ok: 'Dentro da meta', atencao: 'Atenção', estourou: 'Meta estourada' };
 const CLASSE_BADGE = { ok: '', atencao: 'gold', estourou: 'red' };
-const NOME_PERIODO = { 'Diária': 'hoje', Mensal: 'este mês', Anual: 'este ano' };
+const NOME_PERIODO = { Semanal: 'esta semana', Mensal: 'este mês', Anual: 'este ano' };
 
 const versoesDe = meta => db.meta_versoes.filter(v => v.meta_id === meta.id);
 const avaliar = meta => avaliarMeta(meta, versoesDe(meta), db.despesas);
@@ -62,8 +62,8 @@ function editar(meta, r) {
 function metaCard(meta) {
     const r = avaliar(meta);
     const categoria = meta.categoria || 'Todas as despesas';
-    return `<article class="card objetivo meta-gasto ${meta.ativa ? '' : 'inativa'}">
-        <div class="objetivo-topo"><span class="objetivo-icone">${{ 'Diária': '☀', Mensal: '🗓', Anual: '📅' }[meta.periodo]}</span><div><h3>${esc(meta.nome)}</h3><small class="muted">${esc(meta.periodo)} · ${esc(categoria)}${meta.ativa ? '' : ' · pausada'}</small></div>${r.limite === null ? '' : `<span class="badge ${CLASSE_BADGE[r.situacao]}">${ROTULO_SITUACAO[r.situacao]}</span>`}</div>
+    return `<article class="card objetivo meta-gasto ${meta.ativa ? '' : 'inativa'} ${classeStatus(r.limite === null ? 'neutro' : r.situacao)}">
+        <div class="objetivo-topo"><span class="objetivo-icone">${{ Semanal: '7', Mensal: '🗓', Anual: '📅' }[meta.periodo] || '◔'}</span><div><h3>${esc(meta.nome)}</h3><small class="muted">${esc(meta.periodo)} · ${esc(categoria)}${meta.ativa ? '' : ' · pausada'}</small></div>${r.limite === null ? '' : `<span class="badge ${CLASSE_BADGE[r.situacao]}">${ROTULO_SITUACAO[r.situacao]}</span>`}</div>
         <div class="objetivo-valores"><strong>${money(r.gasto)}</strong><span class="muted">${r.limite === null ? 'sem limite vigente' : `de ${money(r.limite)} · ${r.pct}%`}</span></div>
         ${barra(r)}
         <p class="objetivo-plano">${detalheAtual(meta, r)}</p>
@@ -76,15 +76,14 @@ export function metas() {
     const lista = db.metas;
     const ativas = lista.filter(m => m.ativa).map(m => avaliar(m)).filter(r => r.limite !== null);
     const conta = s => ativas.filter(r => r.situacao === s).length;
-    const metrica = (rotulo, valor) => `<div class="card metric"><div class="metric-label">${rotulo}</div><div class="metric-value">${valor}</div></div>`;
     const novo = form(
         field('Nome da meta', 'nome', 'text', 'required maxlength="100" placeholder="Ex: Mercado do mês"') + select('Período', 'periodo', PERIODOS) +
         select('Categoria de despesa', 'categoria', CATEGORIAS_DESPESA) + field('Limite (R$)', 'valor_limite', 'number', 'required min="0.01" step="0.01"') +
         field('Vale desde', 'vigente_desde', 'date', `value="${today}"`) +
         '<div class="field full"><label for="nota">Notas</label><textarea id="nota" name="nota" maxlength="1000" placeholder="Ex: inclui feira e padaria"></textarea></div>',
         'meta-nova', 'Nova meta de gastos');
-    return layout(`<div class="page-heading"><div><h1>Metas de gastos</h1><p>Limites diários, mensais e anuais comparados com as despesas pagas de verdade.</p></div><div class="actions"><a class="btn" href="#/despesas">+ Despesa</a></div></div>
-        <div class="grid-metrics">${metrica('Metas ativas', ativas.length)}${metrica('Dentro da meta', conta('ok'))}${metrica('Em atenção (80%+)', conta('atencao'))}${metrica('Estouradas', conta('estourou'))}</div>
+    return layout(`<div class="page-heading"><div><h1>Metas de gastos</h1><p>Limites semanais, mensais e anuais comparados com as despesas pagas de verdade.</p></div><div class="actions"><a class="btn" href="#/despesas">+ Despesa</a></div></div>
+        <div class="grid-metrics">${metrica('Metas ativas', ativas.length, 'ok')}${metrica('Dentro da meta', conta('ok'), 'ok')}${metrica('Em atenção (80%+)', conta('atencao'), 'atencao')}${metrica('Estouradas', conta('estourou'), 'estourou')}</div>
         ${lista.length ? `<div class="objetivos-grid">${lista.map(metaCard).join('')}</div>` : '<div class="card empty">Nenhuma meta de gastos ainda. Crie a primeira abaixo.</div>'}
         <div style="margin-top:18px">${novo}</div>`, 'Metas de gastos');
 }

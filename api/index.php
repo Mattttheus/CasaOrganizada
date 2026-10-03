@@ -15,7 +15,7 @@
 //   POST objetivo_aporte {objetivo_id, tipo: Dinheiro|Investimento, ...}   POST objetivo_vincular
 //   GET  invest_resumo          renda e posição por ativo do Projeto invest
 //   GET  usuarios               POST usuario_salvar | usuario_excluir   (página Família)
-//   POST meta_salvar | meta_excluir   metas de gastos diárias/mensais/anuais (com histórico de limites)
+//   POST meta_salvar | meta_excluir   metas de gastos semanais/mensais/anuais (com histórico de limites)
 
 declare(strict_types=1);
 

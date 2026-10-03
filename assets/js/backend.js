@@ -5,12 +5,14 @@ import * as supabaseBackend from './data.js';
 import * as localBackend from './localApi.js';
 import * as demoBackend from './demo.js';
 
-function isLocalNetwork() {
+// Hospedagens só de arquivos estáticos (sem a API PHP): lá o app abre como vitrine.
+// Em qualquer outro endereço — localhost, IP da rede, Tailscale (100.x / *.ts.net),
+// IP público ou domínio apontando para o servidor de casa — usa a API local (MySQL).
+function hospedagemEstatica() {
     const host = location.hostname;
-    return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local')
-        || /^(192\.168|10)\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    return location.protocol === 'file:' || /(^|\.)github\.io$/.test(host) || /(^|\.)vercel\.app$/.test(host);
 }
 
-export const mode = BACKEND === 'auto' ? (isLocalNetwork() ? 'mysql' : 'demo') : BACKEND;
+export const mode = BACKEND === 'auto' ? (hospedagemEstatica() ? 'demo' : 'mysql') : BACKEND;
 export const backend = { mysql: localBackend, supabase: supabaseBackend, demo: demoBackend }[mode];
 export const configured = mode !== 'supabase' || supabaseConfigured;

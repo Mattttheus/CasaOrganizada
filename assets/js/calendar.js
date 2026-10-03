@@ -1,7 +1,7 @@
 // Página de Calendário: notas/tarefas, contas a pagar (despesas) e a receber (receitas), e
 // quanto foi gasto em cada dia e por quem. Só devolve o HTML do conteúdo; quem monta a página
 // (layout) é paginas/financas.js.
-import { quemGastou, resumoGastos } from './dominio.js';
+import { limiteVigente, quemGastou, resumoGastos } from './dominio.js';
 import { esc, money, dateBR, todayStr } from './helpers.js';
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -78,13 +78,18 @@ function monthSummary(db) {
     const aPagar = despesasMes.filter(item => item.status === 'Previsto').reduce((sum, item) => sum + Number(item.valor), 0);
     const aReceber = receitasMes.filter(item => item.status === 'Previsto').reduce((sum, item) => sum + Number(item.valor), 0);
     const gastos = resumoGastos(db.despesas, `${prefix}-01`, `${prefix}-31`, db.nomes);
+    // gasto do mês x meta mensal geral (todas as despesas), no padrão de cores dos painéis
+    const metaMensal = (db.metas || []).find(m => m.ativa && !m.categoria && m.periodo === 'Mensal');
+    const limite = metaMensal ? limiteVigente((db.meta_versoes || []).filter(v => v.meta_id === metaMensal.id), `${prefix}-31`) : null;
+    const pct = limite ? Math.round(gastos.total / limite * 100) : null;
+    const statusGasto = pct === null ? 'neutro' : pct > 100 ? 'estourou' : pct >= 80 ? 'atencao' : 'ok';
     const atrasadas = despesasMes.filter(item => item.status === 'Previsto' && item.data < todayStr()).length
         + receitasMes.filter(item => item.status === 'Previsto' && item.data < todayStr()).length;
     return `<div class="grid-metrics cal-summary">
-        <div class="card metric"><div class="metric-label">Gasto no mês (pago)</div><div class="metric-value">${money(gastos.total)}</div>${gastos.porPessoa.length ? `<small class="muted">${pessoasTexto(gastos.porPessoa)}</small>` : ''}</div>
-        <div class="card metric"><div class="metric-label">A pagar no mês</div><div class="metric-value">${money(aPagar)}</div></div>
-        <div class="card metric"><div class="metric-label">A receber no mês</div><div class="metric-value">${money(aReceber)}</div></div>
-        <div class="card metric"><div class="metric-label">Itens atrasados</div><div class="metric-value">${atrasadas}</div></div>
+        <div class="card metric status-${statusGasto}"><div class="metric-label">Gasto no mês (pago)</div><div class="metric-value">${money(gastos.total)}</div>${limite ? `<small class="muted">de ${money(limite)} · ${pct}%</small><br>` : ''}${gastos.porPessoa.length ? `<small class="muted">${pessoasTexto(gastos.porPessoa)}</small>` : ''}</div>
+        <div class="card metric status-${aPagar > 0 ? 'atencao' : 'ok'}"><div class="metric-label">A pagar no mês</div><div class="metric-value">${money(aPagar)}</div></div>
+        <div class="card metric status-${aReceber > 0 ? 'ok' : 'neutro'}"><div class="metric-label">A receber no mês</div><div class="metric-value">${money(aReceber)}</div></div>
+        <div class="card metric status-${atrasadas > 0 ? 'estourou' : 'ok'}"><div class="metric-label">Itens atrasados</div><div class="metric-value">${atrasadas}</div></div>
     </div>`;
 }
 

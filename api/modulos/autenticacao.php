@@ -40,6 +40,10 @@ function acaoLogin(): void
         falhar('E-mail ou senha inválidos.', 401);
     }
     limparTentativas($chave);
+    // De fora de casa (porta aberta no roteador) só entram contas com senha forte.
+    if (!ipDeCasa($ip) && !senhaForte($senha)) {
+        falhar('Por segurança, de fora de casa só entram contas com senha forte (10+ caracteres, letras e números). Troque a senha na página Família estando em casa.', 403);
+    }
     if (password_needs_rehash($u['senha'], PASSWORD_DEFAULT)) {
         sql('UPDATE usuarios SET senha = ? WHERE id = ?', [password_hash($senha, PASSWORD_DEFAULT), $u['id']]);
     }

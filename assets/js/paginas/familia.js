@@ -18,7 +18,7 @@ function contaForm(u) {
         ${campo(id, 'Nome', 'nome', 'text', `required maxlength="100" value="${esc(u?.nome || '')}"`)}
         ${campo(id, 'E-mail (login)', 'email', 'email', `required maxlength="150" value="${esc(u?.email || '')}"`)}
         ${propria && !nova ? campo(id, 'Senha atual', 'senha_atual', 'password', 'autocomplete="current-password" placeholder="só para trocar a senha"') : ''}
-        ${campo(id, nova ? 'Senha' : 'Nova senha', 'senha', 'password', `${nova ? 'required' : ''} minlength="8" autocomplete="new-password" placeholder="${nova ? 'mín. 8, letras e números' : 'deixe em branco para manter'}"`)}
+        ${campo(id, nova ? 'Senha' : 'Nova senha', 'senha', 'password', `${nova ? 'required' : ''} minlength="10" autocomplete="new-password" placeholder="${nova ? 'mín. 10, letras e números' : 'deixe em branco para manter'}"`)}
         ${permissoes}
         <div class="field full objetivo-acoes"><button class="btn btn-primary" type="submit">${nova ? 'Criar acesso' : 'Salvar'}</button>${excluir}</div>
     </form>`;

@@ -4,9 +4,9 @@
 //   'demo'     — vitrine: dados de exemplo, sem login e sem gravar nada.
 //   'supabase' — Supabase (Auth + Postgres), para ter dados reais online
 //                (GitHub Pages / Vercel não rodam PHP). Preencha abaixo.
-//   'auto'     — 'mysql' quando aberto em localhost ou na rede local
-//                (192.168.x.x, 10.x.x.x, *.local); 'demo' no resto
-//                (GitHub Pages, Vercel).
+//   'auto'     — 'demo' no GitHub Pages e na Vercel (só arquivos estáticos);
+//                'mysql' em qualquer outro endereço (localhost, rede de casa,
+//                Tailscale 100.x, IP público com a porta aberta no roteador).
 export const BACKEND = 'auto';
 
 // Configuração do Supabase (só usada no modo 'supabase').

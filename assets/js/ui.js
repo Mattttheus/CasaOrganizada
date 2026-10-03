@@ -1,6 +1,7 @@
 // Componentes de interface reutilizáveis (geram HTML) e avisos. Todo texto vindo de dados
 // passa por esc() antes de entrar no HTML.
 import { esc } from './helpers.js';
+import { situacao } from './dominio.js';
 
 export const form = (fields, submit, title) => `<section class="card"><div class="card-head"><h2>${title}</h2></div><div class="card-body"><form data-form="${submit}" class="form-grid">${fields}<div class="field full"><button class="btn btn-primary" type="submit">Salvar</button></div></form></div></section>`;
 
@@ -19,6 +20,18 @@ export const temaBtn = (extra = '') => {
     const titulo = escuro ? 'Usar tema claro' : 'Usar tema escuro';
     return `<button class="btn btn-tema ${extra}" data-action="tema" title="${titulo}" aria-label="${titulo}">${escuro ? '☀' : '☾'}</button>`;
 };
+
+/**
+ * Classe de cor pela situação — o mesmo padrão em todos os painéis:
+ * 'ok' verde, 'atencao' amarelo, 'estourou' vermelho, 'neutro' azul (informativo).
+ */
+export const classeStatus = status => `status-${status || 'neutro'}`;
+
+/** Situação de um gasto em relação a um limite (verde < 80%, amarelo até 100%, vermelho acima). */
+export const statusDoUso = (usado, limite) => (limite > 0 ? situacao(Math.round(usado / limite * 100)) : 'neutro');
+
+/** Cartão de métrica com a borda na cor da situação. */
+export const metrica = (rotulo, valor, status = 'neutro', extra = '') => `<div class="card metric ${classeStatus(status)}"><div class="metric-label">${rotulo}</div><div class="metric-value">${valor}</div>${extra}</div>`;
 
 export const lerFormulario = formEl => Object.fromEntries(new FormData(formEl).entries());
 

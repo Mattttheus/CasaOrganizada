@@ -109,11 +109,17 @@ function nomeValido($nome): string
     return texto($nome, [], 'nome');
 }
 
-/** Política de senha para contas novas e trocas de senha. */
+/** Senha forte o bastante para entrar de fora de casa: 10+ caracteres, com letras e números. */
+function senhaForte(string $senha): bool
+{
+    return strlen($senha) >= 10 && preg_match('/[A-Za-z]/', $senha) && preg_match('/[0-9]/', $senha);
+}
+
+/** Política de senha para contas novas e trocas de senha (a mesma exigida de fora de casa). */
 function senhaValida($senha): string
 {
     $senha = (string)$senha;
-    if (strlen($senha) < 8) falhar('A senha precisa ter pelo menos 8 caracteres.', 422);
+    if (strlen($senha) < 10) falhar('A senha precisa ter pelo menos 10 caracteres.', 422);
     if (strlen($senha) > 200) falhar('Senha longa demais.', 422);
     if (!preg_match('/[A-Za-z]/', $senha) || !preg_match('/[0-9]/', $senha)) falhar('A senha precisa ter letras e números.', 422);
     return $senha;

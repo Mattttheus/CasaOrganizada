@@ -24,12 +24,13 @@ const CONTAS = {
 };
 
 let servidor;
+let hashPadrao;   // hash de SENHA, para restaurar contas de teste direto no banco
 
 const mysql = sqlTexto => execFileSync(MYSQL, ['-uroot', '--host=127.0.0.1', '--port=3306', '--default-character-set=utf8mb4'], { input: sqlTexto, encoding: 'utf8' });
 const consulta = sqlTexto => mysql(`USE ${BANCO};\n${sqlTexto}`).trim().split('\n').slice(1);
 
 before(async () => {
-    const hash = execFileSync(PHP, ['-r', `echo password_hash('${SENHA}', PASSWORD_DEFAULT);`], { encoding: 'utf8' });
+    const hash = hashPadrao = execFileSync(PHP, ['-r', `echo password_hash('${SENHA}', PASSWORD_DEFAULT);`], { encoding: 'utf8' });
     const esquema = readFileSync(join(RAIZ, 'database/mysql.sql'), 'utf8').replace(/\bcasa_organizada\b/g, BANCO);
     mysql(`DROP DATABASE IF EXISTS ${BANCO};\n${esquema}`);
     const contas = Object.values(CONTAS).map(c => `('${c.id}', '${c.nome}', '${c.email}', '${hash}', ${c.invest}, ${c.admin})`).join(', ');
@@ -298,7 +299,7 @@ test('Contas: admin cria acesso com senha forte e e-mail único', async () => {
 
 test('Contas: conta comum não cria, não edita outros e não se promove', async () => {
     const comum = await logado('comum');
-    assert.equal((await comum.pedir('usuario_salvar', { nome: 'X', email: 'x2@teste.local', senha: 'Senha1234' })).status, 403);
+    assert.equal((await comum.pedir('usuario_salvar', { nome: 'X', email: 'x2@teste.local', senha: 'Senha12345' })).status, 403);
     assert.equal((await comum.pedir('usuario_salvar', { id: CONTAS.admin.id, nome: 'Hack', email: CONTAS.admin.email })).status, 403);
     const promover = await comum.pedir('usuario_salvar', { id: CONTAS.comum.id, nome: CONTAS.comum.nome, email: CONTAS.comum.email, admin: true, invest: true });
     assert.equal(promover.status, 200);
@@ -315,7 +316,7 @@ test('Contas: trocar a própria senha exige a senha atual, com limite de tentati
     await limparTentativas();
     assert.equal((await comum.pedir('usuario_salvar', { ...base, senha_atual: SENHA })).status, 200);
     assert.equal((await cliente().entrar(CONTAS.comum.email, 'NovaSenha99')).status, 200);
-    await comum.pedir('usuario_salvar', { ...base, senha: SENHA, senha_atual: 'NovaSenha99' });   // devolve a senha original
+    consulta(`UPDATE usuarios SET senha = '${hashPadrao}' WHERE id = '${CONTAS.comum.id}';`);   // devolve a senha original
 });
 
 test('Contas: ninguém exclui a própria conta e o sistema nunca fica sem administrador', async () => {
@@ -328,9 +329,9 @@ test('Contas: ninguém exclui a própria conta e o sistema nunca fica sem admini
 
 test('Contas: excluir um acesso derruba a sessão aberta da pessoa na hora', async () => {
     const admin = await logado('admin');
-    await admin.pedir('usuario_salvar', { nome: 'Temporário', email: 'temp@teste.local', senha: 'Temp12345' });
+    await admin.pedir('usuario_salvar', { nome: 'Temporário', email: 'temp@teste.local', senha: 'Temp123456' });
     const temp = cliente();
-    assert.equal((await temp.entrar('temp@teste.local', 'Temp12345')).status, 200);
+    assert.equal((await temp.entrar('temp@teste.local', 'Temp123456')).status, 200);
     const id = consulta("SELECT id FROM usuarios WHERE email = 'temp@teste.local';")[0];
     assert.equal((await admin.pedir('usuario_excluir', { id })).status, 200);
     assert.equal((await temp.pedir('sessao')).json.user, null);
@@ -339,9 +340,9 @@ test('Contas: excluir um acesso derruba a sessão aberta da pessoa na hora', asy
 
 test('Contas: retirar o acesso aos investimentos vale na hora, sem novo login', async () => {
     const admin = await logado('admin');
-    await admin.pedir('usuario_salvar', { nome: 'Investidor', email: 'inv@teste.local', senha: 'Inv123456', invest: true });
+    await admin.pedir('usuario_salvar', { nome: 'Investidor', email: 'inv@teste.local', senha: 'Inv1234567', invest: true });
     const inv = cliente();
-    await inv.entrar('inv@teste.local', 'Inv123456');
+    await inv.entrar('inv@teste.local', 'Inv1234567');
     assert.equal((await inv.pedir('sessao')).json.user.invest, true);
     const id = consulta("SELECT id FROM usuarios WHERE email = 'inv@teste.local';")[0];
     await admin.pedir('usuario_salvar', { id, nome: 'Investidor', email: 'inv@teste.local', invest: false });
@@ -380,7 +381,7 @@ test('Metas: pausar, validar e excluir (apaga o histórico de limites junto)', a
     const c = await logado('comum');
     const invalidas = [
         [{ nome: '', periodo: 'Mensal', valor_limite: 10 }, /nome/],
-        [{ nome: 'X', periodo: 'Semanal', valor_limite: 10 }, /Diária, Mensal, Anual/],
+        [{ nome: 'X', periodo: 'Diária', valor_limite: 10 }, /Semanal, Mensal, Anual/],
         [{ nome: 'X', periodo: 'Mensal', categoria: 'Pets', valor_limite: 10 }, /categoria/],
         [{ nome: 'X', periodo: 'Mensal', valor_limite: 0 }, /maior que zero/],
         [{ nome: 'X', periodo: 'Mensal', valor_limite: 10, vigente_desde: '2026-13-01' }, /Data inválida/],
@@ -391,8 +392,8 @@ test('Metas: pausar, validar e excluir (apaga o histórico de limites junto)', a
         assert.equal(r.status, 422, JSON.stringify(corpo));
         assert.match(r.json.error, msg);
     }
-    const { json: { id } } = await c.pedir('meta_salvar', { nome: 'Lazer', periodo: 'Diária', categoria: 'Lazer', valor_limite: 50 });
-    await c.pedir('meta_salvar', { id, nome: 'Lazer', periodo: 'Diária', categoria: 'Lazer', valor_limite: 50, ativa: false });
+    const { json: { id } } = await c.pedir('meta_salvar', { nome: 'Lazer', periodo: 'Semanal', categoria: 'Lazer', valor_limite: 300 });
+    await c.pedir('meta_salvar', { id, nome: 'Lazer', periodo: 'Semanal', categoria: 'Lazer', valor_limite: 300, ativa: false });
     assert.equal((await c.pedir('dados')).json.metas.find(m => m.id === id).ativa, false);
     assert.equal((await c.pedir('meta_excluir', { id })).status, 200);
     assert.equal(consulta(`SELECT COUNT(*) FROM meta_gasto_versoes WHERE meta_id = '${id}';`)[0], '0');
@@ -411,4 +412,16 @@ test('Despesas: guardam quem gastou e os dados trazem o nome de quem lançou', a
     const dados = (await c.pedir('dados')).json;
     assert.equal(dados.nomes[CONTAS.comum.id], CONTAS.comum.nome);
     assert.equal(dados.despesas.find(d => d.id === r.json.id).criado_por, CONTAS.comum.id);
+});
+
+// ------------------------------------------------------------------ acesso de fora de casa
+
+test('Acesso externo: IPs de casa (rede, Tailscale) e senha forte exigida de fora', () => {
+    const codigo = `define('CASA_API', true); require 'api/nucleo/limites.php'; require 'api/nucleo/validacao.php';
+        foreach (['127.0.0.1', '::1', '192.168.1.7', '10.0.0.5', '172.20.1.1', '100.101.102.103', 'fd7a:115c:a1e0::1', '177.10.20.30', '8.8.8.8', '100.128.0.1'] as $ip) echo $ip, '=', ipDeCasa($ip) ? 'casa' : 'fora', ' ';
+        foreach (['abc12345', 'Senha123', 'Familia@2026', 'abcdefghij', 'Abc1234567'] as $s) echo $s, '=', senhaForte($s) ? 'forte' : 'fraca', ' ';`;
+    const saida = execFileSync(PHP, ['-r', codigo], { cwd: RAIZ, encoding: 'utf8' });
+    for (const ip of ['127.0.0.1', '::1', '192.168.1.7', '10.0.0.5', '172.20.1.1', '100.101.102.103', 'fd7a:115c:a1e0::1']) assert.match(saida, new RegExp(`${ip.replace(/\./g, '\.')}=casa`));
+    for (const ip of ['177.10.20.30', '8.8.8.8', '100.128.0.1']) assert.match(saida, new RegExp(`${ip.replace(/\./g, '\.')}=fora`));
+    assert.match(saida, /abc12345=fraca .*Senha123=fraca .*Familia@2026=forte .*abcdefghij=fraca .*Abc1234567=forte/);
 });

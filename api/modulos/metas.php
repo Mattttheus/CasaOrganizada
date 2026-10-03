@@ -1,10 +1,10 @@
 <?php
-// Metas de gastos (limites diários, mensais e anuais). Cada mudança de limite vira uma nova
+// Metas de gastos (limites semanais, mensais e anuais). Cada mudança de limite vira uma nova
 // versão (histórico com nota e autor); a comparação com as despesas é feita no front-end
 // (assets/js/dominio.js), usando o limite que valia em cada período.
 defined('CASA_API') || exit;
 
-const PERIODOS_META = ['Diária', 'Mensal', 'Anual'];
+const PERIODOS_META = ['Semanal', 'Mensal', 'Anual'];
 const CATEGORIAS_DESPESA = ['Moradia', 'Alimentação', 'Transporte', 'Lazer', 'Outros'];
 
 function listarMetas(): array

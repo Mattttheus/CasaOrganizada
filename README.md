@@ -77,7 +77,8 @@ Na rede local o app não precisa do Supabase: ao abrir em `localhost` ou num IP
 
 1. Abra o phpMyAdmin (http://localhost/phpmyadmin), vá em **Importar** e
    envie [`database/mysql.sql`](database/mysql.sql). Ele cria o banco
-   `casa_organizada` com todas as tabelas.
+   `casa_organizada` com todas as tabelas, **vazias** (nenhum dado lançado vai
+   para o repositório).
 2. Crie um usuário do MySQL só para a API (não use o root) e coloque as
    credenciais em `api/config.local.php` (fora do git):
    ```sql
@@ -88,9 +89,13 @@ Na rede local o app não precisa do Supabase: ao abrir em `localhost` ou num IP
    ```php
    <?php return ['user' => 'casa_app', 'pass' => 'senha-forte'];
    ```
-3. Acesse http://192.168.1.51:8082 (VirtualHost dedicado; `localhost`
-   redireciona para o IP fixo). **Não há cadastro aberto**: o administrador cria
-   os acessos em **Família → Acessos ao sistema**.
+3. Crie o primeiro administrador (não há cadastro aberto; o mesmo comando
+   recupera o acesso se a senha for esquecida):
+   ```bash
+   php database/criar_admin.php "Seu nome" seu@email.com "senha-com-10+-caracteres"
+   ```
+4. Acesse o app pelo IP fixo do servidor (VirtualHost dedicado na porta 8082) e
+   cadastre a família em **Família → Acessos ao sistema**.
 
 ### Login único com o Projeto invest
 
@@ -161,11 +166,11 @@ host da auditoria: `CASA_HOST` (padrão 192.168.1.51).
 
 - **Visão geral** — saldo, metas de gastos, renda de investimentos e objetivos.
 - **Receitas** e **Despesas** — a despesa registra **quem gastou**; a página traz o
-  relatório de gastos de **hoje, do mês e do ano** (comparado com a meta geral),
+  relatório de gastos de **hoje, da semana, do mês e do ano** (comparado com a meta geral),
   por pessoa, por categoria e dia a dia (cada dia abre no calendário).
 - **Calendário** — quanto foi gasto em cada dia e por quem, contas a pagar/receber,
   notas e tarefas.
-- **Metas de gastos** — limites **diários, mensais e anuais** (gerais ou por
+- **Metas de gastos** — limites **semanais (domingo a sábado), mensais e anuais** (gerais ou por
   categoria) × gasto real, projeção do período e quanto ainda dá para gastar por
   dia; cada mudança de limite fica no histórico com nota e autor, e os períodos
   antigos são comparados com o limite que valia neles.
@@ -173,5 +178,6 @@ host da auditoria: `CASA_HOST` (padrão 192.168.1.51).
   com dinheiro guardado, investimentos do Projeto invest e quem investiu.
 - **Cartões**, **Parcelamentos** e **Família** (acessos ao sistema e membros).
 
-`database/gestao_familiar_corrigido.sql` é o schema MySQL da versão antiga
-com backend PHP (removida) — mantido só como referência histórica.
+Dados pessoais e lançamentos ficam só no banco local: o repositório (e o
+GitHub Pages) leva apenas o código, a estrutura do banco e os dados fictícios
+da vitrine.

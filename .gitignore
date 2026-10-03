@@ -1,3 +1,6 @@
 *.log
 .vscode/
 api/config.local.php
+
+# Schema antigo com dados pessoais: fica só no PC, nunca no repositório público
+database/gestao_familiar_corrigido.sql

@@ -42,14 +42,14 @@ const SAMPLE = {
     metas: [
         { id: 'mg1', nome: 'Gastos do mês', periodo: 'Mensal', categoria: null, nota: 'Todas as despesas da casa.', ativa: true },
         { id: 'mg2', nome: 'Mercado', periodo: 'Mensal', categoria: 'Alimentação', nota: 'Inclui feira e padaria.', ativa: true },
-        { id: 'mg3', nome: 'Lazer do dia', periodo: 'Diária', categoria: 'Lazer', nota: null, ativa: true },
+        { id: 'mg3', nome: 'Lazer da semana', periodo: 'Semanal', categoria: 'Lazer', nota: 'Passeios, cinema e restaurantes.', ativa: true },
         { id: 'mg4', nome: 'Transporte no ano', periodo: 'Anual', categoria: 'Transporte', nota: null, ativa: true },
     ],
     meta_versoes: [
         { id: 'v1', meta_id: 'mg1', valor_limite: 3500, vigente_desde: `${now.getFullYear() - 1}-01-01`, nota: 'Meta criada', alterado_por: 'Ana' },
         { id: 'v2', meta_id: 'mg1', valor_limite: 4000, vigente_desde: day(1), nota: 'Aluguel aumentou', alterado_por: 'Carlos' },
         { id: 'v3', meta_id: 'mg2', valor_limite: 1200, vigente_desde: `${now.getFullYear() - 1}-01-01`, nota: 'Meta criada', alterado_por: 'Ana' },
-        { id: 'v4', meta_id: 'mg3', valor_limite: 100, vigente_desde: `${now.getFullYear() - 1}-01-01`, nota: 'Meta criada', alterado_por: 'Ana' },
+        { id: 'v4', meta_id: 'mg3', valor_limite: 300, vigente_desde: `${now.getFullYear() - 1}-01-01`, nota: 'Meta criada', alterado_por: 'Ana' },
         { id: 'v5', meta_id: 'mg4', valor_limite: 5000, vigente_desde: `${now.getFullYear()}-01-01`, nota: 'Meta criada', alterado_por: 'Carlos' },
     ],
     objetivos: [

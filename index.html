@@ -17,7 +17,15 @@
 </head>
 
 <body>
-    <div id="app"></div>
+    <!-- Conteúdo provisório: o app troca por sua tela ao carregar. Se ficar visível, os scripts
+         não rodaram (geralmente cópia antiga em cache): a mensagem explica como resolver. -->
+    <div id="app">
+        <main class="login"><section class="card login-box" style="text-align:center">
+            <p>Carregando…</p>
+            <p style="color:var(--muted);font-size:13px;margin-top:18px">Se esta tela não mudar em alguns segundos, atualize sem
+                cache: <strong>Ctrl + Shift + R</strong> no computador ou, no celular, limpe os dados deste site nas configurações do navegador.</p>
+        </section></main>
+    </div>
     <noscript>Ative o JavaScript para usar o Casa Organizada.</noscript>
     <script type="module" src="assets/js/app.js"></script>
 </body>

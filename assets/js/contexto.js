@@ -15,5 +15,5 @@ export const db = {
 };
 
 // session: usuário logado { id, nome, email, invest, admin }; page: rota atual (#/pagina).
-// periodoGastos: período do relatório da página Despesas (Diária | Mensal | Anual).
+// periodoGastos: período do relatório da página Despesas (Diária | Semanal | Mensal | Anual).
 export const estado = { session: null, page: 'loading', authMode: 'login', menuAberto: false, periodoGastos: 'Mensal' };

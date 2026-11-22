@@ -1,14 +1,14 @@
 // Objetivos e metas: cards com progresso, lançamentos (dinheiro ou compra no invest),
 // vínculo de ativos, histórico e o resumo do painel.
 import { db, demo, INVEST_URL, today } from '../contexto.js';
-import { investidoNoObjetivo, progressoObjetivo, resumoObjetivos, totalPorPessoa } from '../dominio.js';
+import { investidoNoObjetivo, objetivosDeInvestimento, objetivosDoPainel, progressoObjetivo, resumoObjetivos, totalPorPessoa } from '../dominio.js';
 import { esc, money, dateBR } from '../helpers.js';
 import { campo, classeStatus, field, form, metrica, select } from '../ui.js';
 import { ativosInvest } from './investimentos.js';
 import { layout } from './layout.js';
 
-const CATEGORIAS_OBJETIVO = ['Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Outro'];
-const ICONES = { Casa: '🏠', Carro: '🚗', Viagem: '✈', Passeio: '🌳', Reserva: '🛟', Outro: '◎' };
+const CATEGORIAS_OBJETIVO = ['Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Investimento', 'Outro'];
+const ICONES = { Casa: '🏠', Carro: '🚗', Viagem: '✈', Passeio: '🌳', Reserva: '🛟', Investimento: '▲', Outro: '◎' };
 const icone = item => ICONES[item.categoria] || '◎';
 
 const progresso = item => progressoObjetivo(item, investidoNoObjetivo(item, db.vinculos, ativosInvest()));
@@ -128,12 +128,22 @@ export function objetivos() {
         <div style="margin-top:18px">${novo}</div>`, 'Objetivos da família');
 }
 
-/** Resumo dos objetivos no painel inicial. */
+function linhaResumo(item) {
+    const p = progresso(item);
+    return `<a class="objetivo-linha" href="#/objetivos"><span>${icone(item)} ${esc(item.nome)}</span><span class="muted">${money(p.atual)}${p.meta ? ' de ' + money(p.meta) : ''}</span><div class="limit"><i style="width:${p.pct}%"></i></div></a>`;
+}
+
+/** Resumo dos objetivos no painel inicial: só casa, carro, viagem e reservas. */
 export function objetivosResumo() {
-    if (!db.objetivos.length) return '';
-    const linhas = db.objetivos.map(item => {
-        const p = progresso(item);
-        return `<a class="objetivo-linha" href="#/objetivos"><span>${icone(item)} ${esc(item.nome)}</span><span class="muted">${money(p.atual)}${p.meta ? ' de ' + money(p.meta) : ''}</span><div class="limit"><i style="width:${p.pct}%"></i></div></a>`;
-    }).join('');
-    return `<section class="card invest-card"><div class="card-head"><h2>Objetivos e metas</h2><a class="badge" href="#/objetivos">Ver todos</a></div><div class="card-body objetivos-resumo">${linhas}</div></section>`;
+    const lista = objetivosDoPainel(db.objetivos);
+    if (!lista.length) return '';
+    return `<section class="card invest-card"><div class="card-head"><h2>Objetivos e metas</h2><a class="badge" href="#/objetivos">Ver todos</a></div><div class="card-body objetivos-resumo">${lista.map(linhaResumo).join('')}</div></section>`;
+}
+
+/** Card "Investimentos" do painel inicial: objetivos da categoria Investimento e o total deles. */
+export function investimentosResumo() {
+    const lista = objetivosDeInvestimento(db.objetivos);
+    if (!lista.length) return '';
+    const total = lista.reduce((soma, item) => soma + progresso(item).atual, 0);
+    return `<section class="card invest-card"><div class="card-head"><h2>Investimentos</h2><a class="badge" href="#/objetivos">${money(total)} no total</a></div><div class="card-body objetivos-resumo">${lista.map(linhaResumo).join('')}</div></section>`;
 }

@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    enderecoDeVolta, investidoNoObjetivo, maisRecentes, progressoObjetivo, resumoObjetivos, somaValores, totalPorPessoa,
+    enderecoDeVolta, investidoNoObjetivo, maisRecentes, objetivosDeInvestimento, objetivosDoPainel, progressoObjetivo,
+    resumoObjetivos, somaValores, totalPorPessoa,
 } from '../assets/js/dominio.js';
 
 const hoje = new Date(2026, 9, 3); // 03/10/2026
@@ -67,6 +68,13 @@ test('resumoObjetivos: totais e progresso médio só dos que têm meta', () => {
     assert.equal(r.metas, 80000);
     assert.equal(r.progressoMedio, 29);              // (50% + 7%) / 2
     assert.equal(resumoObjetivos([]).progressoMedio, 0);
+});
+
+test('painel: card de objetivos só com casa, carro, viagem e reserva; investimentos à parte', () => {
+    const lista = ['Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Investimento', 'Outro'].map(categoria => ({ categoria }));
+    assert.deepEqual(objetivosDoPainel(lista).map(o => o.categoria), ['Casa', 'Carro', 'Viagem', 'Reserva']);
+    assert.deepEqual(objetivosDeInvestimento(lista).map(o => o.categoria), ['Investimento']);
+    assert.deepEqual(objetivosDoPainel([]), []);
 });
 
 test('totalPorPessoa agrupa e ordena do maior para o menor', () => {

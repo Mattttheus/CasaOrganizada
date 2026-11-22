@@ -57,6 +57,8 @@ const SAMPLE = {
         { id: 'o2', nome: 'Comprar carro', categoria: 'Carro', valor_meta: 35000, valor_atual: 9800, prazo: `${now.getFullYear() + 2}-06-30` },
         { id: 'o3', nome: 'Viagens', categoria: 'Viagem', valor_meta: 8000, valor_atual: 3150, prazo: `${now.getFullYear() + 1}-01-15` },
         { id: 'o4', nome: 'Passeios', categoria: 'Passeio', valor_meta: 1500, valor_atual: 980, prazo: null },
+        { id: 'o5', nome: 'Reserva de emergência', categoria: 'Reserva', valor_meta: 20000, valor_atual: 6400, prazo: null },
+        { id: 'o6', nome: 'Reserva de patrimônio (CDBs)', categoria: 'Investimento', valor_meta: null, valor_atual: 4200, prazo: null },
     ],
 };
 

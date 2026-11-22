@@ -118,13 +118,18 @@ create table if not exists notas_tarefas (
 create table if not exists objetivos (
     id uuid primary key default gen_random_uuid(),
     nome varchar(100) not null,
-    categoria varchar(20) not null default 'Outro' check (categoria in ('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Outro')),
+    categoria varchar(20) not null default 'Outro' check (categoria in ('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Investimento', 'Outro')),
     valor_meta numeric(12, 2),
     valor_atual numeric(12, 2) not null default 0 check (valor_atual >= 0),
     prazo date,
     criado_por uuid references auth.users (id) on delete set null,
     criado_em timestamptz not null default now()
 );
+
+-- Categoria "Investimento" para bancos criados antes dela
+alter table objetivos drop constraint if exists objetivos_categoria_check;
+alter table objetivos add constraint objetivos_categoria_check
+    check (categoria in ('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Investimento', 'Outro'));
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security — qualquer usuário autenticado (toda a família) tem

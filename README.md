@@ -175,7 +175,9 @@ host da auditoria: `CASA_HOST` (padrão 192.168.1.51).
   dia; cada mudança de limite fica no histórico com nota e autor, e os períodos
   antigos são comparados com o limite que valia neles.
 - **Objetivos** — metas de dinheiro (casa, carro, viagens, reservas de emergência…)
-  com dinheiro guardado, investimentos do Projeto invest e quem investiu.
+  com dinheiro guardado, investimentos do Projeto invest e quem investiu. Na visão geral, o card
+  **Objetivos e metas** mostra só casa, carro, viagem e reservas; os objetivos da categoria
+  **Investimento** (ativos do invest, caixinhas/CDBs, reserva de patrimônio) ficam no card **Investimentos**.
 - **Cartões**, **Parcelamentos** e **Família** (acessos ao sistema e membros).
 
 Dados pessoais e lançamentos ficam só no banco local: o repositório (e o

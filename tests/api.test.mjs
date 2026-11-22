@@ -228,6 +228,15 @@ test('Objetivos: guardar dinheiro soma no objetivo e registra quem lançou', asy
     assert.equal(aporte.investido_por, CONTAS.comum.nome);
 });
 
+test('Objetivos: aceita a categoria Investimento e recusa categoria desconhecida', async () => {
+    const c = await logado('comum');
+    const o = await c.inserir('objetivos', { nome: 'Reserva de patrimônio – Teste', categoria: 'Investimento' });
+    assert.equal(o.status, 201);
+    const dados = (await c.pedir('dados')).json;
+    assert.equal(dados.objetivos.find(x => x.id === o.json.id).categoria, 'Investimento');
+    assert.equal((await c.inserir('objetivos', { nome: 'Inválido', categoria: 'Ações' })).status, 422);
+});
+
 test('Objetivos: lançamento recusa valor zero, data futura e tipo inválido', async () => {
     const c = await logado('comum');
     const o = await c.inserir('objetivos', { nome: 'Viagem teste', categoria: 'Viagem' });

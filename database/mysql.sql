@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS notas_tarefas (
 CREATE TABLE IF NOT EXISTS objetivos (
     id CHAR(36) PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
-    categoria ENUM('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Outro') NOT NULL DEFAULT 'Outro',
+    categoria ENUM('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Investimento', 'Outro') NOT NULL DEFAULT 'Outro',
     valor_meta DECIMAL(12, 2) NULL,
     valor_atual DECIMAL(12, 2) NOT NULL DEFAULT 0,
     prazo DATE NULL,
@@ -178,8 +178,9 @@ UPDATE usuarios SET admin = 1
 WHERE id = (SELECT id FROM (SELECT id FROM usuarios ORDER BY criado_em LIMIT 1) primeira)
   AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM usuarios WHERE admin = 1) x);
 
--- Categoria "Reserva" (reserva de emergência) para bancos criados antes dela
-ALTER TABLE objetivos MODIFY COLUMN categoria ENUM('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Outro') NOT NULL DEFAULT 'Outro';
+-- Categorias "Reserva" (reserva de emergência) e "Investimento" (ativos do invest, caixinhas/CDBs:
+-- aparecem no card Investimentos da visão geral) para bancos criados antes delas
+ALTER TABLE objetivos MODIFY COLUMN categoria ENUM('Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Investimento', 'Outro') NOT NULL DEFAULT 'Outro';
 
 -- Metas de gastos (limites diários, mensais e anuais) comparadas com as despesas lançadas.
 -- categoria NULL = todas as despesas; senão, só as despesas daquela categoria.

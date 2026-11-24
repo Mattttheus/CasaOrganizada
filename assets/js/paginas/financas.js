@@ -7,7 +7,7 @@ import { classeStatus, field, form, metrica, select, statusDoUso } from '../ui.j
 import { investCard } from './investimentos.js';
 import { layout } from './layout.js';
 import { metasResumo } from './metas.js';
-import { objetivosResumo } from './objetivos.js';
+import { investimentosResumo, objetivosResumo } from './objetivos.js';
 
 const CATEGORIAS = ['Moradia', 'Alimentação', 'Transporte', 'Lazer', 'Salário', 'Outros'];
 const observacao = '<div class="field full"><label for="observacao">Observação</label><textarea id="observacao" name="observacao" maxlength="1000"></textarea></div>';
@@ -22,7 +22,7 @@ export function dashboard() {
     const ultimas = `<section class="card"><div class="card-head"><h2>Últimas despesas</h2><a href="#/despesas" class="badge">Ver todas</a></div>${recentes.length ? `<div class="table-wrap"><table><tbody>${recentes.map(item => `<tr><td>${dateBR(item.data)}<br><strong>${esc(item.descricao)}</strong></td><td>${money(item.valor)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Nenhuma despesa registrada.</div>'}</section>`;
     return layout(`<div class="page-heading"><div><h1>Visão geral</h1><p>Um retrato claro do dinheiro da sua família.</p></div><div class="actions">${acoes}</div></div>
         <div class="grid-metrics">${metrica('Receitas', money(receitas), receitas > 0 ? 'ok' : 'neutro')}${metrica('Despesas', money(despesas), receitas > 0 ? statusDoUso(despesas, receitas) : despesas > 0 ? 'estourou' : 'neutro', receitas > 0 ? `<small class="muted">${Math.round(despesas / receitas * 100)}% das receitas</small>` : '')}${metrica('Saldo', money(saldo), saldo > 0 ? 'ok' : saldo < 0 ? 'estourou' : 'neutro')}${metrica('Itens cadastrados', db.receitas.length + db.despesas.length)}</div>
-        ${metasResumo()}${investCard()}${objetivosResumo()}<div class="two-col">${fluxo}${ultimas}</div>`, 'Dashboard financeiro');
+        ${metasResumo()}${investCard()}${investimentosResumo()}${objetivosResumo()}<div class="two-col">${fluxo}${ultimas}</div>`, 'Dashboard financeiro');
 }
 
 export function receitas() {

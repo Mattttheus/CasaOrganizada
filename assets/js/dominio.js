@@ -42,6 +42,13 @@ export function resumoObjetivos(progressos) {
     };
 }
 
+/** Categorias do card "Objetivos e metas" da visão geral (investimentos têm card próprio). */
+export const CATEGORIAS_DO_PAINEL = ['Casa', 'Carro', 'Viagem', 'Reserva'];
+export const objetivosDoPainel = lista => lista.filter(o => CATEGORIAS_DO_PAINEL.includes(o.categoria));
+
+/** Objetivos da parte de investimentos: ativos do Projeto invest, caixinhas/CDBs, reserva de patrimônio. */
+export const objetivosDeInvestimento = lista => lista.filter(o => o.categoria === 'Investimento');
+
 /** Quanto cada pessoa lançou nos objetivos, do maior para o menor: [[nome, total], ...]. */
 export function totalPorPessoa(aportes) {
     const totais = {};

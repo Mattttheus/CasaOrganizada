@@ -53,7 +53,7 @@ const COLECOES = [
     ]],
     'objetivos' => ['tabela' => 'objetivos', 'ordem' => 'criado_em, nome', 'colunas' => [
         'nome' => ['s', 'obrig' => true, 'max' => 100],
-        'categoria' => ['s', 'opcoes' => ['Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Outro']],
+        'categoria' => ['s', 'opcoes' => ['Casa', 'Carro', 'Viagem', 'Passeio', 'Reserva', 'Investimento', 'Outro']],
         'valor_meta' => ['f', 'min' => 0.01, 'maxv' => 9999999999],
         'valor_atual' => ['f', 'min' => 0, 'maxv' => 9999999999],
         'prazo' => ['d'],
